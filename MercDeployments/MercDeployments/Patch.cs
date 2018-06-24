@@ -8,6 +8,7 @@ using Harmony;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace MercDeployments {
 
@@ -64,6 +65,11 @@ namespace MercDeployments {
             Fields.DeploymentDifficulty = contract.Difficulty;
             Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
             Fields.DeploymentTarget = contract.Override.targetTeam.faction;
+            Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
+            Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
+            Fields.DeploymentNegotiatedRep = contract.PercentageContractReputation;
+            Fields.DeploymentSallary = Mathf.RoundToInt( contract.InitialContractValue * contract.PercentageContractValue);
+            Fields.DeploymentSalvage = contract.Override.salvagePotential;
         }
     }
     
@@ -87,11 +93,15 @@ namespace MercDeployments {
         static void Postfix(SimGameState __instance) {
             if (Fields.Deployment) {
                 Settings settings = Helper.LoadSettings();
-                Random rand = new Random();
+                System.Random rand = new System.Random();
                 if (rand.NextDouble() < settings.MissionChancePerDay) {
                     __instance.PauseTimer();
                     SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
                     Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
+                    newcon.SetInitialReward(0);
+                    newcon.Override.salvagePotential = Fields.DeploymentSalvage;
+                    newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+                    newcon.Override.disableNegotations = true;
                     Fields.DeploymentContracts.Add(newcon.Name, newcon);
                     interruptQueue.QueueGenericPopup("New Mission", "Our Employer has a new mission for us.");
                 }

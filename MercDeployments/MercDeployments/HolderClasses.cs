@@ -13,7 +13,11 @@ namespace MercDeployments {
         public static Faction DeploymentEmployer = Faction.INVALID_UNSET;
         public static Faction DeploymentTarget = Faction.INVALID_UNSET;
         public static int DeploymentDifficulty = 1;
-
+        public static float DeploymentNegotiatedSalvage = 1;
+        public static float DeploymentNegotiatedPayment = 0;
+        public static float DeploymentNegotiatedRep = 0;
+        public static int DeploymentSallary = 100000;
+        public static int DeploymentSalvage = 0;
     }
 
     public struct PotentialContract {

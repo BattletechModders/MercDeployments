@@ -47,7 +47,7 @@ namespace MercDeployments {
                 using (StreamWriter writer = new StreamWriter(filePath, true)) {
                     /*JsonSerializerSettings settings = new JsonSerializerSettings {
                         ReferenceLoopHandling = ReferenceLoopHandling.Serialize,
-                        PreserveReferencesHandling = PreserveReferencesHandling.All,
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
                         Formatting = Formatting.Indented
                     };*/
                     SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts, Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty);
