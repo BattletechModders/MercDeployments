@@ -60,7 +60,7 @@ namespace MercDeployments {
 
     [HarmonyPatch(typeof(SimGameState), "PrepareBreadcrumb")]
     public static class SimGameState_PrepareBreadcrumb_Patch {
-        static void Postfix(SimGameState __instance, Contract contract) {
+        static void Postfix(SimGameState __instance, ref Contract contract) {
             Fields.DeploymentContracts.Add(contract.Name, contract);
             Fields.DeploymentDifficulty = contract.Difficulty;
             Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
@@ -69,6 +69,7 @@ namespace MercDeployments {
             Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
             Fields.DeploymentSallary = Mathf.RoundToInt( contract.InitialContractValue * contract.PercentageContractValue);
             Fields.DeploymentSalvage = contract.Override.salvagePotential;
+            contract.SetInitialReward(0);
         }
     }
     
