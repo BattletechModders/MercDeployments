@@ -15,7 +15,6 @@ namespace MercDeployments {
         public static int DeploymentDifficulty = 1;
         public static float DeploymentNegotiatedSalvage = 1;
         public static float DeploymentNegotiatedPayment = 0;
-        public static float DeploymentNegotiatedRep = 0;
         public static int DeploymentSallary = 100000;
         public static int DeploymentSalvage = 0;
     }

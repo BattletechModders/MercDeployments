@@ -67,7 +67,6 @@ namespace MercDeployments {
             Fields.DeploymentTarget = contract.Override.targetTeam.faction;
             Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
             Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
-            Fields.DeploymentNegotiatedRep = contract.PercentageContractReputation;
             Fields.DeploymentSallary = Mathf.RoundToInt( contract.InitialContractValue * contract.PercentageContractValue);
             Fields.DeploymentSalvage = contract.Override.salvagePotential;
         }

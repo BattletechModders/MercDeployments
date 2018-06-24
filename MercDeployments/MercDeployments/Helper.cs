@@ -16,13 +16,24 @@ namespace MercDeployments {
         public  Faction DeploymentEmployer = Faction.INVALID_UNSET;
         public  Faction DeploymentTarget = Faction.INVALID_UNSET;
         public  int DeploymentDifficulty = 1;
+        public  float DeploymentNegotiatedSalvage = 1;
+        public  float DeploymentNegotiatedPayment = 0;
+        public  int DeploymentSallary = 100000;
+        public  int DeploymentSalvage = 0;
 
-        public SaveFields(bool Deployment, Dictionary<string, Contract> DeploymentContracts, Faction DeploymentEmployer, Faction DeploymentTarget, int DeploymentDifficulty) {
+        public SaveFields(bool Deployment, Dictionary<string, Contract> DeploymentContracts, Faction DeploymentEmployer, 
+                Faction DeploymentTarget, int DeploymentDifficulty, float DeploymentNegotiatedSalvage, 
+                float DeploymentNegotiatedPayment, int DeploymentSallary, int DeploymentSalvage) {
+
             this.Deployment = Deployment;
             this.DeploymentContracts = DeploymentContracts;
             this.DeploymentEmployer = DeploymentEmployer;
             this.DeploymentTarget = DeploymentTarget;
             this.DeploymentDifficulty = DeploymentDifficulty;
+            this.DeploymentNegotiatedSalvage = DeploymentNegotiatedSalvage;
+            this.DeploymentNegotiatedPayment = DeploymentNegotiatedPayment;
+            this.DeploymentSallary = DeploymentSallary;
+            this.DeploymentSalvage = DeploymentSalvage;
         }
     }
     public class Helper {
@@ -50,7 +61,9 @@ namespace MercDeployments {
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
                         Formatting = Formatting.Indented
                     };*/
-                    SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts, Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty);
+                    SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts, 
+                        Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty, 
+                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSallary, Fields.DeploymentSalvage);
                     string json = JsonConvert.SerializeObject(fields);
                     writer.Write(json);
                 }
@@ -73,6 +86,10 @@ namespace MercDeployments {
                         Fields.DeploymentEmployer = save.DeploymentEmployer;
                         Fields.DeploymentTarget = save.DeploymentTarget;
                         Fields.DeploymentDifficulty = save.DeploymentDifficulty;
+                        Fields.DeploymentNegotiatedSalvage = save.DeploymentNegotiatedSalvage;
+                        Fields.DeploymentNegotiatedPayment = save.DeploymentNegotiatedPayment;
+                        Fields.DeploymentSallary = save.DeploymentSallary;
+                        Fields.DeploymentSalvage = save.DeploymentSalvage;
                     }
                 }
             }
