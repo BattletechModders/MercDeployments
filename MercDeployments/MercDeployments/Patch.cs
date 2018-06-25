@@ -88,6 +88,21 @@ namespace MercDeployments {
         }
     }
 
+    [HarmonyPatch(typeof(SimGameState), "GetExpenditures")]
+    public static class SimGameState_GetExpenditures {
+
+        static void Postfix(ref SimGameState __instance, ref int __result) {
+            try {
+                if (Fields.Deployment) {
+                    __result -= Fields.DeploymentSallary;
+                } 
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
     public static class SimGameState_OnDayPassed_Patch {
         static void Postfix(SimGameState __instance) {
