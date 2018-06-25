@@ -1,5 +1,6 @@
 ﻿using BattleTech;
 using BattleTech.Save;
+using BattleTech.Save.SaveGameStructure;
 using BattleTech.Save.Test;
 using BattleTech.UI;
 using Harmony;
@@ -42,34 +43,18 @@ namespace MercDeployments {
         }
     }
 
-    [HarmonyPatch(typeof(SimGameState), "Dehydrate")]
-    public class SimGameState_Dehydrate_Patch {
-        public static void Prefix(SimGameState __instance, SimGameSave save, ref SerializableReferenceContainer references) {
-            SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts,
-                        Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty,
-                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage);
-            references.AddItem("MercDeployment", fields);
+    [HarmonyPatch(typeof(GameInstanceSave))]
+    [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
+    public static class GameInstanceSave_Constructor_Patch {
+        static void Postfix(GameInstanceSave __instance) {
+            Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
         }
     }
 
-    [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
-    public class SimGameState_Rehydrate_Patch {
-        public static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave,
-           ref List<Contract> ___globalContracts) {
-
-            SimGameSave save = gameInstanceSave.SimGameSave;
-            if (save.GlobalReferences.HasItem("MercDeployment")) {
-                SaveFields fields = save.GlobalReferences.GetItem<SaveFields>("MercDeployment");
-                Fields.Deployment = fields.Deployment;
-                Fields.DeploymentContracts = fields.DeploymentContracts;
-                Fields.DeploymentEmployer = fields.DeploymentEmployer;
-                Fields.DeploymentTarget = fields.DeploymentTarget;
-                Fields.DeploymentDifficulty = fields.DeploymentDifficulty;
-                Fields.DeploymentNegotiatedSalvage = fields.DeploymentNegotiatedSalvage;
-                Fields.DeploymentNegotiatedPayment = fields.DeploymentNegotiatedPayment;
-                Fields.DeploymentSalary = fields.DeploymentSalary;
-                Fields.DeploymentSalvage = fields.DeploymentSalvage;
-            }
+    [HarmonyPatch(typeof(GameInstance), "Load")]
+    public static class GameInstance_Load_Patch {
+        static void Prefix(GameInstanceSave save) {
+            Helper.LoadState(save.InstanceGUID, save.SaveTime);
         }
     }
 

@@ -60,6 +60,54 @@ namespace MercDeployments {
             }
         }
 
+        public static void SaveState(string instanceGUID, DateTime saveTime) {
+            try {
+                int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                string filePath = $"{ MercDeployments.ModDirectory}/saves/" + instanceGUID + "-" + unixTimestamp + ".json";
+                (new FileInfo(filePath)).Directory.Create();
+                using (StreamWriter writer = new StreamWriter(filePath, true)) {
+                    /*JsonSerializerSettings settings = new JsonSerializerSettings {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Serialize,
+                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+                        Formatting = Formatting.Indented
+                    };*/
+                    SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts,
+                        Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty,
+                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage);
+                    string json = JsonConvert.SerializeObject(fields);
+                    writer.Write(json);
+                }
+            }
+            catch (Exception ex) {
+                Logger.LogError(ex);
+            }
+        }
+
+        public static void LoadState(string instanceGUID, DateTime saveTime) {
+            try {
+                int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                string filePath = $"{ MercDeployments.ModDirectory}/saves/" + instanceGUID + "-" + unixTimestamp + ".json";
+                if (File.Exists(filePath)) {
+                    using (StreamReader r = new StreamReader(filePath)) {
+                        string json = r.ReadToEnd();
+                        SaveFields save = JsonConvert.DeserializeObject<SaveFields>(json);
+                        Fields.Deployment = save.Deployment;
+                        Fields.DeploymentContracts = save.DeploymentContracts;
+                        Fields.DeploymentEmployer = save.DeploymentEmployer;
+                        Fields.DeploymentTarget = save.DeploymentTarget;
+                        Fields.DeploymentDifficulty = save.DeploymentDifficulty;
+                        Fields.DeploymentNegotiatedSalvage = save.DeploymentNegotiatedSalvage;
+                        Fields.DeploymentNegotiatedPayment = save.DeploymentNegotiatedPayment;
+                        Fields.DeploymentSalary = save.DeploymentSalary;
+                        Fields.DeploymentSalvage = save.DeploymentSalvage;
+                    }
+                }
+            }
+            catch (Exception ex) {
+                Logger.LogError(ex);
+            }
+        }
+
         public static Contract GetNewContract(SimGameState Sim, int Difficulty, Faction emp, Faction targ) {
             ContractDifficulty minDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });
             ContractDifficulty maxDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });
