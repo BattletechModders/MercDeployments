@@ -19,11 +19,13 @@ namespace MercDeployments {
         public  float DeploymentNegotiatedPayment = 0;
         public  int DeploymentSalary = 100000;
         public  int DeploymentSalvage = 0;
-        public  List<string> AlreadyRaised = new List<string>();
+        public  int DeploymentLenght = 0;
+        public  int DeploymentRemainingDays = 0;
+        public  Dictionary<string,int> AlreadyRaised = new Dictionary<string,int>();
 
         public SaveFields(bool Deployment, Faction DeploymentEmployer, 
                 Faction DeploymentTarget, int DeploymentDifficulty, float DeploymentNegotiatedSalvage, 
-                float DeploymentNegotiatedPayment, int DeploymentSalary, int DeploymentSalvage, List<string> AlreadyRaised) {
+                float DeploymentNegotiatedPayment, int DeploymentSalary, int DeploymentSalvage, Dictionary<string, int> AlreadyRaised, int DeploymentLenght, int DeploymentRemainingDays) {
 
             this.Deployment = Deployment;
             this.DeploymentEmployer = DeploymentEmployer;
@@ -34,6 +36,8 @@ namespace MercDeployments {
             this.DeploymentSalary = DeploymentSalary;
             this.DeploymentSalvage = DeploymentSalvage;
             this.AlreadyRaised = AlreadyRaised;
+            this.DeploymentLenght = DeploymentLenght;
+            this.DeploymentRemainingDays = DeploymentRemainingDays;
         }
     }
 
@@ -64,7 +68,8 @@ namespace MercDeployments {
                     };*/
                     SaveFields fields = new SaveFields(Fields.Deployment, 
                         Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty,
-                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage, Fields.AlreadyRaised);
+                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, 
+                        Fields.DeploymentSalvage, Fields.AlreadyRaised, Fields.DeploymentLenght, Fields.DeploymentRemainingDays);
                     string json = JsonConvert.SerializeObject(fields);
                     writer.Write(json);
                 }
@@ -91,6 +96,8 @@ namespace MercDeployments {
                         Fields.DeploymentSalary = save.DeploymentSalary;
                         Fields.DeploymentSalvage = save.DeploymentSalvage;
                         Fields.AlreadyRaised = save.AlreadyRaised;
+                        Fields.DeploymentLenght = save.DeploymentLenght;
+                        Fields.DeploymentRemainingDays = save.DeploymentRemainingDays;
                     }
                 }
             }

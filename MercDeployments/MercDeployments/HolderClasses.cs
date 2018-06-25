@@ -7,11 +7,12 @@ namespace MercDeployments {
     public class Settings {
         public float MissionChancePerDay = 0.1f;
         public float DeploymentSalaryMultiplier = 5f;
+        public int MaxMonth = 3;
     }
     
     public static class Fields {
+            
         public static bool Deployment = false;
-        public static Dictionary<string, Contract> DeploymentContracts = new Dictionary<string, Contract>();
         public static Faction DeploymentEmployer = Faction.INVALID_UNSET;
         public static Faction DeploymentTarget = Faction.INVALID_UNSET;
         public static int DeploymentDifficulty = 1;
@@ -19,7 +20,12 @@ namespace MercDeployments {
         public static float DeploymentNegotiatedPayment = 0;
         public static int DeploymentSalary = 100000;
         public static int DeploymentSalvage = 0;
-        public static List<string> AlreadyRaised = new List<string>();
+        public static int DeploymentLenght = 0;
+        public static int DeploymentRemainingDays = 0;
+
+        public static Dictionary<string, Contract> DeploymentContracts = new Dictionary<string, Contract>();
+
+        public static Dictionary<string, int> AlreadyRaised = new Dictionary<string, int>();
     }
 
     public struct PotentialContract {

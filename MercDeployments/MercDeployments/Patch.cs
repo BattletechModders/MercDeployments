@@ -14,10 +14,12 @@ namespace MercDeployments {
     public static class SGContractsListItem_Init_Patch {
         static void Prefix(SGContractsListItem __instance, Contract contract) {
             try {
-                if (contract.Override.travelOnly && !Fields.AlreadyRaised.Contains(contract.Name)) {
+                if (contract.Override.travelOnly && !Fields.AlreadyRaised.ContainsKey(contract.Name)) {
                     Settings settings = Helper.LoadSettings();
                     contract.SetInitialReward(Mathf.RoundToInt(contract.InitialContractValue * settings.DeploymentSalaryMultiplier));
-                    Fields.AlreadyRaised.Add(contract.Name);
+                    System.Random rand = new System.Random();
+                    int numberOfMonth = rand.Next(1, settings.MaxMonth+1);
+                    Fields.AlreadyRaised.Add(contract.Name, numberOfMonth);
                 }
             }
             catch (Exception e) {
@@ -32,7 +34,8 @@ namespace MercDeployments {
                     TextMeshProUGUI contractMaxPay = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "contractMaxPay");
                     TextMeshProUGUI contractMaxSalvage = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "contractMaxSalvage");
 
-                    ReflectionHelper.InvokePrivateMethode(__instance, "setFieldText", new object[] { contractName, contract.Override.contractName + " (Deployment)" });
+                    int numberOfMonth = Fields.AlreadyRaised[contract.Name];
+                    ReflectionHelper.InvokePrivateMethode(__instance, "setFieldText", new object[] { contractName, contract.Override.contractName + " (" + numberOfMonth + " Months)" });
                     ReflectionHelper.InvokePrivateMethode(__instance, "setFieldText", new object[] { contractMaxPay, contractMaxPay.text + " (per month)" });
                     ReflectionHelper.InvokePrivateMethode(__instance, "setFieldText", new object[] { contractMaxSalvage, contractMaxSalvage.text + " (per mission)" });
                 }
@@ -48,7 +51,7 @@ namespace MercDeployments {
             Fields.AlreadyRaised.Clear();
         }
     }
-    
+
     [HarmonyPatch(typeof(GameInstanceSave))]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
@@ -95,6 +98,7 @@ namespace MercDeployments {
     public static class SimGameState_OnBreadcrumbArrival_Patch {
         static void Postfix(SimGameState __instance) {
             Fields.Deployment = true;
+            Fields.DeploymentRemainingDays = __instance.Constants.Finances.QuarterLength * Fields.DeploymentLenght;
         }
     }
 
@@ -121,6 +125,7 @@ namespace MercDeployments {
             Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
             Fields.DeploymentSalary = Mathf.RoundToInt(contract.InitialContractValue * contract.PercentageContractValue);
             Fields.DeploymentSalvage = contract.Override.salvagePotential;
+            Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
             contract.SetInitialReward(0);
         }
     }
@@ -155,9 +160,11 @@ namespace MercDeployments {
         }
     }
 
+
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
     public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch {
 
+        [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost" })]
         static void Postfix(ref SimGameState __instance) {
             try {
                 if (Fields.Deployment) {
@@ -177,6 +184,12 @@ namespace MercDeployments {
     public static class SimGameState_OnDayPassed_Patch {
         static void Postfix(SimGameState __instance) {
             if (Fields.Deployment) {
+                Fields.DeploymentRemainingDays--;
+                if (Fields.DeploymentRemainingDays <= 0) {
+                    Fields.Deployment = false;
+                    SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
+                    interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
+                }
                 Settings settings = Helper.LoadSettings();
                 System.Random rand = new System.Random();
                 if (rand.NextDouble() < settings.MissionChancePerDay) {
@@ -191,6 +204,7 @@ namespace MercDeployments {
                     interruptQueue.QueueGenericPopup("New Mission", "Our Employer has a new mission for us.");
                 }
             }
+            
         }
 
 
