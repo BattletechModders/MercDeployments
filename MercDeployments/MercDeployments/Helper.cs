@@ -10,9 +10,8 @@ using System.Linq;
 
 namespace MercDeployments {
 
-    public class SaveFields : IGuid{
+    public class SaveFields{
         public  bool Deployment = false;
-        public  Dictionary<string, Contract> DeploymentContracts = new Dictionary<string, Contract>();
         public  Faction DeploymentEmployer = Faction.INVALID_UNSET;
         public  Faction DeploymentTarget = Faction.INVALID_UNSET;
         public  int DeploymentDifficulty = 1;
@@ -20,19 +19,13 @@ namespace MercDeployments {
         public  float DeploymentNegotiatedPayment = 0;
         public  int DeploymentSalary = 100000;
         public  int DeploymentSalvage = 0;
-        public string guid = "MercDeployment";
-        public string GUID {
-            get {
-               return this.guid;
-            }
-        }
+        public  List<string> AlreadyRaised = new List<string>();
 
-        public SaveFields(bool Deployment, Dictionary<string, Contract> DeploymentContracts, Faction DeploymentEmployer, 
+        public SaveFields(bool Deployment, Faction DeploymentEmployer, 
                 Faction DeploymentTarget, int DeploymentDifficulty, float DeploymentNegotiatedSalvage, 
-                float DeploymentNegotiatedPayment, int DeploymentSalary, int DeploymentSalvage) {
+                float DeploymentNegotiatedPayment, int DeploymentSalary, int DeploymentSalvage, List<string> AlreadyRaised) {
 
             this.Deployment = Deployment;
-            this.DeploymentContracts = DeploymentContracts;
             this.DeploymentEmployer = DeploymentEmployer;
             this.DeploymentTarget = DeploymentTarget;
             this.DeploymentDifficulty = DeploymentDifficulty;
@@ -40,12 +33,10 @@ namespace MercDeployments {
             this.DeploymentNegotiatedPayment = DeploymentNegotiatedPayment;
             this.DeploymentSalary = DeploymentSalary;
             this.DeploymentSalvage = DeploymentSalvage;
-        }
-
-        public void SetGuid(string newGuid) {
-            this.guid = newGuid;
+            this.AlreadyRaised = AlreadyRaised;
         }
     }
+
     public class Helper {
         public static Settings LoadSettings() {
             try {
@@ -71,9 +62,9 @@ namespace MercDeployments {
                         PreserveReferencesHandling = PreserveReferencesHandling.Objects,
                         Formatting = Formatting.Indented
                     };*/
-                    SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts,
+                    SaveFields fields = new SaveFields(Fields.Deployment, 
                         Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty,
-                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage);
+                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage, Fields.AlreadyRaised);
                     string json = JsonConvert.SerializeObject(fields);
                     writer.Write(json);
                 }
@@ -92,7 +83,6 @@ namespace MercDeployments {
                         string json = r.ReadToEnd();
                         SaveFields save = JsonConvert.DeserializeObject<SaveFields>(json);
                         Fields.Deployment = save.Deployment;
-                        Fields.DeploymentContracts = save.DeploymentContracts;
                         Fields.DeploymentEmployer = save.DeploymentEmployer;
                         Fields.DeploymentTarget = save.DeploymentTarget;
                         Fields.DeploymentDifficulty = save.DeploymentDifficulty;
@@ -100,6 +90,7 @@ namespace MercDeployments {
                         Fields.DeploymentNegotiatedPayment = save.DeploymentNegotiatedPayment;
                         Fields.DeploymentSalary = save.DeploymentSalary;
                         Fields.DeploymentSalvage = save.DeploymentSalvage;
+                        Fields.AlreadyRaised = save.AlreadyRaised;
                     }
                 }
             }

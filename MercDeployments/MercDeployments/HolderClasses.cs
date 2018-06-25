@@ -19,6 +19,7 @@ namespace MercDeployments {
         public static float DeploymentNegotiatedPayment = 0;
         public static int DeploymentSalary = 100000;
         public static int DeploymentSalvage = 0;
+        public static List<string> AlreadyRaised = new List<string>();
     }
 
     public struct PotentialContract {

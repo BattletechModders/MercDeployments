@@ -1,7 +1,6 @@
 ﻿using BattleTech;
 using BattleTech.Save;
 using BattleTech.Save.SaveGameStructure;
-using BattleTech.Save.Test;
 using BattleTech.UI;
 using Harmony;
 using System;
@@ -15,9 +14,10 @@ namespace MercDeployments {
     public static class SGContractsListItem_Init_Patch {
         static void Prefix(SGContractsListItem __instance, Contract contract) {
             try {
-                if (contract.Override.travelOnly) {
+                if (contract.Override.travelOnly && !Fields.AlreadyRaised.Contains(contract.Name)) {
                     Settings settings = Helper.LoadSettings();
                     contract.SetInitialReward(Mathf.RoundToInt(contract.InitialContractValue * settings.DeploymentSalaryMultiplier));
+                    Fields.AlreadyRaised.Add(contract.Name);
                 }
             }
             catch (Exception e) {
@@ -42,12 +42,22 @@ namespace MercDeployments {
             }
         }
     }
-
+    [HarmonyPatch(typeof(StarSystem), "ResetContracts")]
+    public static class StarSystem_ResetContracts_Patch {
+        static void Postfix() {
+            Fields.AlreadyRaised.Clear();
+        }
+    }
+    
     [HarmonyPatch(typeof(GameInstanceSave))]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
-        static void Postfix(GameInstanceSave __instance) {
+        static void Postfix(GameInstanceSave __instance, GameInstance gameInstance, SaveReason saveReason) {
             Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
+            if (Fields.Deployment) {
+                gameInstance.Simulation.CurSystem.SystemContracts.Clear();
+                gameInstance.Simulation.CurSystem.SystemContracts.AddRange(Fields.DeploymentContracts.Values);
+            }
         }
     }
 
@@ -55,6 +65,16 @@ namespace MercDeployments {
     public static class GameInstance_Load_Patch {
         static void Prefix(GameInstanceSave save) {
             Helper.LoadState(save.InstanceGUID, save.SaveTime);
+        }
+    }
+    [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
+    public static class SimGameState_Rehydrate_Patch {
+        static void Postfix(SimGameState __instance) {
+            if (Fields.Deployment) {
+                foreach (Contract contract in __instance.CurSystem.SystemContracts) {
+                    Fields.DeploymentContracts.Add(contract.Name, contract);
+                }
+            }
         }
     }
 
@@ -141,10 +161,10 @@ namespace MercDeployments {
         static void Postfix(ref SimGameState __instance) {
             try {
                 if (Fields.Deployment) {
-                    ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0-Fields.DeploymentSalary) });
+                    ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0 - Fields.DeploymentSalary) });
                     TextMeshProUGUI SectionOneExpensesField = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesField");
-                    int newTotal = int.Parse(SectionOneExpensesField.text.Replace("¢",""));
-                    ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal-Fields.DeploymentSalary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
+                    int newTotal = int.Parse(SectionOneExpensesField.text.Replace("¢", "").Replace(",", ""));
+                    ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal - Fields.DeploymentSalary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 }
             }
             catch (Exception e) {
