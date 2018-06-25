@@ -29,7 +29,7 @@ namespace MercDeployments {
 
         public SaveFields(bool Deployment, Dictionary<string, Contract> DeploymentContracts, Faction DeploymentEmployer, 
                 Faction DeploymentTarget, int DeploymentDifficulty, float DeploymentNegotiatedSalvage, 
-                float DeploymentNegotiatedPayment, int DeploymentSallary, int DeploymentSalvage) {
+                float DeploymentNegotiatedPayment, int DeploymentSalary, int DeploymentSalvage) {
 
             this.Deployment = Deployment;
             this.DeploymentContracts = DeploymentContracts;
@@ -38,7 +38,7 @@ namespace MercDeployments {
             this.DeploymentDifficulty = DeploymentDifficulty;
             this.DeploymentNegotiatedSalvage = DeploymentNegotiatedSalvage;
             this.DeploymentNegotiatedPayment = DeploymentNegotiatedPayment;
-            this.DeploymentSalary = DeploymentSallary;
+            this.DeploymentSalary = DeploymentSalary;
             this.DeploymentSalvage = DeploymentSalvage;
         }
 

@@ -47,7 +47,7 @@ namespace MercDeployments {
         public static void Prefix(SimGameState __instance, SimGameSave save, ref SerializableReferenceContainer references) {
             SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts,
                         Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty,
-                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSallary, Fields.DeploymentSalvage);
+                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSalary, Fields.DeploymentSalvage);
             references.AddItem("MercDeployment", fields);
         }
     }
@@ -67,7 +67,7 @@ namespace MercDeployments {
                 Fields.DeploymentDifficulty = fields.DeploymentDifficulty;
                 Fields.DeploymentNegotiatedSalvage = fields.DeploymentNegotiatedSalvage;
                 Fields.DeploymentNegotiatedPayment = fields.DeploymentNegotiatedPayment;
-                Fields.DeploymentSallary = fields.DeploymentSalary;
+                Fields.DeploymentSalary = fields.DeploymentSalary;
                 Fields.DeploymentSalvage = fields.DeploymentSalvage;
             }
         }
@@ -114,7 +114,7 @@ namespace MercDeployments {
             Fields.DeploymentTarget = contract.Override.targetTeam.faction;
             Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
             Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
-            Fields.DeploymentSallary = Mathf.RoundToInt(contract.InitialContractValue * contract.PercentageContractValue);
+            Fields.DeploymentSalary = Mathf.RoundToInt(contract.InitialContractValue * contract.PercentageContractValue);
             Fields.DeploymentSalvage = contract.Override.salvagePotential;
             contract.SetInitialReward(0);
         }
@@ -141,7 +141,7 @@ namespace MercDeployments {
         static void Postfix(ref SimGameState __instance, ref int __result) {
             try {
                 if (Fields.Deployment) {
-                    __result -= Fields.DeploymentSallary;
+                    __result -= Fields.DeploymentSalary;
                 }
             }
             catch (Exception e) {
@@ -156,10 +156,10 @@ namespace MercDeployments {
         static void Postfix(ref SimGameState __instance) {
             try {
                 if (Fields.Deployment) {
-                    ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0-Fields.DeploymentSallary) });
+                    ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0-Fields.DeploymentSalary) });
                     TextMeshProUGUI SectionOneExpensesField = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesField");
                     int newTotal = int.Parse(SectionOneExpensesField.text.Replace("¢",""));
-                    ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal-Fields.DeploymentSallary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
+                    ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal-Fields.DeploymentSalary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 }
             }
             catch (Exception e) {
