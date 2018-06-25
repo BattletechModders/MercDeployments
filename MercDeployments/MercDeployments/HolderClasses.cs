@@ -1,10 +1,12 @@
 ﻿using BattleTech;
 using BattleTech.Framework;
 using System.Collections.Generic;
+using System;
 
 namespace MercDeployments {
     public class Settings {
         public float MissionChancePerDay = 0.1f;
+        public float DeploymentSalaryMultiplier = 5f;
     }
     
     public static class Fields {

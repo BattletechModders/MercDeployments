@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace MercDeployments {
 
-    public class SaveFields {
+    public class SaveFields : IGuid{
         public  bool Deployment = false;
         public  Dictionary<string, Contract> DeploymentContracts = new Dictionary<string, Contract>();
         public  Faction DeploymentEmployer = Faction.INVALID_UNSET;
@@ -18,8 +18,14 @@ namespace MercDeployments {
         public  int DeploymentDifficulty = 1;
         public  float DeploymentNegotiatedSalvage = 1;
         public  float DeploymentNegotiatedPayment = 0;
-        public  int DeploymentSallary = 100000;
+        public  int DeploymentSalary = 100000;
         public  int DeploymentSalvage = 0;
+        public string guid = "MercDeployment";
+        public string GUID {
+            get {
+               return this.guid;
+            }
+        }
 
         public SaveFields(bool Deployment, Dictionary<string, Contract> DeploymentContracts, Faction DeploymentEmployer, 
                 Faction DeploymentTarget, int DeploymentDifficulty, float DeploymentNegotiatedSalvage, 
@@ -32,8 +38,12 @@ namespace MercDeployments {
             this.DeploymentDifficulty = DeploymentDifficulty;
             this.DeploymentNegotiatedSalvage = DeploymentNegotiatedSalvage;
             this.DeploymentNegotiatedPayment = DeploymentNegotiatedPayment;
-            this.DeploymentSallary = DeploymentSallary;
+            this.DeploymentSalary = DeploymentSallary;
             this.DeploymentSalvage = DeploymentSalvage;
+        }
+
+        public void SetGuid(string newGuid) {
+            this.guid = newGuid;
         }
     }
     public class Helper {
@@ -47,54 +57,6 @@ namespace MercDeployments {
             catch (Exception ex) {
                 Logger.LogError(ex);
                 return null;
-            }
-        }
-
-        public static void SaveState(string instanceGUID, DateTime saveTime) {
-            try {
-                int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                string filePath = $"{ MercDeployments.ModDirectory}/saves/" + instanceGUID + "-" + unixTimestamp + ".json";
-                (new FileInfo(filePath)).Directory.Create();
-                using (StreamWriter writer = new StreamWriter(filePath, true)) {
-                    /*JsonSerializerSettings settings = new JsonSerializerSettings {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Serialize,
-                        PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-                        Formatting = Formatting.Indented
-                    };*/
-                    SaveFields fields = new SaveFields(Fields.Deployment, Fields.DeploymentContracts, 
-                        Fields.DeploymentEmployer, Fields.DeploymentTarget, Fields.DeploymentDifficulty, 
-                        Fields.DeploymentNegotiatedSalvage, Fields.DeploymentNegotiatedPayment, Fields.DeploymentSallary, Fields.DeploymentSalvage);
-                    string json = JsonConvert.SerializeObject(fields);
-                    writer.Write(json);
-                }
-            }
-            catch (Exception ex) {
-                Logger.LogError(ex);
-            }
-        }
-
-        public static void LoadState(string instanceGUID, DateTime saveTime) {
-            try {
-                int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                string filePath = $"{ MercDeployments.ModDirectory}/saves/" + instanceGUID + "-" + unixTimestamp + ".json";
-                if (File.Exists(filePath)) {
-                    using (StreamReader r = new StreamReader(filePath)) {
-                        string json = r.ReadToEnd();
-                        SaveFields save = JsonConvert.DeserializeObject<SaveFields>(json);
-                        Fields.Deployment = save.Deployment;
-                        Fields.DeploymentContracts = save.DeploymentContracts;
-                        Fields.DeploymentEmployer = save.DeploymentEmployer;
-                        Fields.DeploymentTarget = save.DeploymentTarget;
-                        Fields.DeploymentDifficulty = save.DeploymentDifficulty;
-                        Fields.DeploymentNegotiatedSalvage = save.DeploymentNegotiatedSalvage;
-                        Fields.DeploymentNegotiatedPayment = save.DeploymentNegotiatedPayment;
-                        Fields.DeploymentSallary = save.DeploymentSallary;
-                        Fields.DeploymentSalvage = save.DeploymentSalvage;
-                    }
-                }
-            }
-            catch (Exception ex) {
-                Logger.LogError(ex);
             }
         }
 
