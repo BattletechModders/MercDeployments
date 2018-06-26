@@ -2,12 +2,14 @@
 using BattleTech.Save;
 using BattleTech.Save.SaveGameStructure;
 using BattleTech.UI;
+using DG.Tweening;
 using Harmony;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MercDeployments {
     [HarmonyPatch(typeof(SGContractsListItem), "Init")]
@@ -18,7 +20,7 @@ namespace MercDeployments {
                     Settings settings = Helper.LoadSettings();
                     contract.SetInitialReward(Mathf.RoundToInt(contract.InitialContractValue * settings.DeploymentSalaryMultiplier));
                     System.Random rand = new System.Random();
-                    int numberOfMonth = rand.Next(1, settings.MaxMonth+1);
+                    int numberOfMonth = rand.Next(1, settings.MaxMonth + 1);
                     Fields.AlreadyRaised.Add(contract.Name, numberOfMonth);
                 }
             }
@@ -74,6 +76,7 @@ namespace MercDeployments {
     public static class SimGameState_Rehydrate_Patch {
         static void Postfix(SimGameState __instance) {
             if (Fields.Deployment) {
+                Fields.DeploymentContracts = new Dictionary<string, Contract>();
                 foreach (Contract contract in __instance.CurSystem.SystemContracts) {
                     Fields.DeploymentContracts.Add(contract.Name, contract);
                 }
@@ -129,7 +132,45 @@ namespace MercDeployments {
             contract.SetInitialReward(0);
         }
     }
-
+    [HarmonyPatch(typeof(SGNavigationScreen), "OnTravelCourseAccepted")]
+    public static class SGNavigationScreen_OnTravelCourseAccepted_Patch {
+        static bool Prefix(SGNavigationScreen __instance) {
+            try {
+                if (Fields.Deployment) {
+                    UIManager uiManager = (UIManager)AccessTools.Field(typeof(SGNavigationScreen), "uiManager").GetValue(__instance);
+                    SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGNavigationScreen), "simState").GetValue(__instance);
+                    Action cleanup = delegate () {
+                        uiManager.ResetFader(UIManagerFader_Controller.FadeUIContainer.PopupRoot);
+                        simState.Starmap.Screen.AllowInput(true);
+                    };
+                    string primaryButtonText = "Break Contract";
+                    string message = "WARNING: This action will break your current deplyoment contract. Your reputation with the employer and the MRB will be negatively affected.";
+                    PauseNotification.Show("Navigation Change", message, simState.GetCrewPortrait(SimGameCrew.Crew_Sumire), string.Empty, true, delegate {
+                        cleanup();
+                        Fields.Deployment = false;
+                        if (simState.DoesFactionGainReputation(Fields.DeploymentEmployer)) {
+                            Settings settings = Helper.LoadSettings();
+                            ReflectionHelper.InvokePrivateMethode(simState, "SetReputation", new object[] { Fields.DeploymentEmployer, settings.DeploymentBreakRepCost, StatCollection.StatOperation.Int_Add, null });
+                            ReflectionHelper.InvokePrivateMethode(simState, "SetReputation", new object[] { Faction.MercenaryReviewBoard, settings.DeploymentBreakMRBRepCost, StatCollection.StatOperation.Int_Add, null });
+                            AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(simState, null);
+                        }
+                        simState.Starmap.SetActivePath();
+                        simState.SetSimRoomState(DropshipLocation.SHIP);
+                    }, primaryButtonText, cleanup, "Cancel");
+                    simState.Starmap.Screen.AllowInput(false);
+                    uiManager.SetFaderColor(uiManager.UILookAndColorConstants.PopupBackfill, UIManagerFader.FadePosition.FadeInBack, UIManagerFader_Controller.FadeUIContainer.PopupRoot, true);
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+                return true;
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(SGRoomController_CmdCenter), "GetAllContracts")]
     public static class SGRoomController_CmdCenter_GetAllContracts_Patch {
@@ -141,6 +182,44 @@ namespace MercDeployments {
             }
             else {
                 return true;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(SGFinancialForecastWidget), "RefreshData")]
+    public static class SGFinancialForecastWidget_RefreshData_Patch {
+        static void Postfix(SGFinancialForecastWidget __instance) {
+            try {
+                SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGFinancialForecastWidget), "simState").GetValue(__instance);             
+                int expenditures = simState.GetExpenditures(false);
+                if (expenditures < 0) {
+                    
+                    List<Image> PipFills = (List<Image>)AccessTools.Field(typeof(SGFinancialForecastWidget), "PipFills").GetValue(__instance);
+                    List<UIColorRefTracker> PipColors = (List<UIColorRefTracker>)AccessTools.Field(typeof(SGFinancialForecastWidget), "PipColors").GetValue(__instance);
+                    List<DOTweenAnimation> PipsToFlash = (List<DOTweenAnimation>)AccessTools.Field(typeof(SGFinancialForecastWidget), "PipsToFlash").GetValue(__instance);
+                    for (int i = 0; i < PipFills.Count; i++) {
+                        PipFills[i].gameObject.SetActive(true);
+                        PipColors[i].SetUIColor(UIColor.Green);
+                    }
+                    PipsToFlash.ForEach(delegate (DOTweenAnimation tween) {
+                        tween.DOPause();
+                    });
+                    UIColorRefTracker UnderlineColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "UnderlineColor").GetValue(__instance);
+                    UIColorRefTracker ReportBGColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "ReportBGColor").GetValue(__instance);
+                    UIColorRefTracker SpendingValueColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "SpendingValueColor").GetValue(__instance);
+                    UIColorRefTracker FinancialTextColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "FinancialTextColor").GetValue(__instance);
+                    Image BankrupcyIncomingOverlay = (Image)AccessTools.Field(typeof(SGFinancialForecastWidget), "BankrupcyIncomingOverlay").GetValue(__instance);
+                    TextMeshProUGUI CurrSpendingValueText = (TextMeshProUGUI)AccessTools.Field(typeof(SGFinancialForecastWidget), "CurrSpendingValueText").GetValue(__instance);
+                    UnderlineColor.SetUIColor(UIColor.Green);
+                    ReportBGColor.SetUIColor(UIColor.Green);
+                    SpendingValueColor.SetUIColor(UIColor.Green);
+                    FinancialTextColor.SetUIColor(UIColor.Green);
+                    CurrSpendingValueText.text = string.Format("{0} / mo (income)", SimGameState.GetCBillString(0-expenditures));
+                    BankrupcyIncomingOverlay.gameObject.SetActive(false);
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
@@ -165,7 +244,17 @@ namespace MercDeployments {
     public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch {
 
         [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost" })]
-        static void Postfix(ref SimGameState __instance) {
+        static void Prefix(SGCaptainsQuartersStatusScreen __instance) {
+            try {
+                Fields.InvertCBills = true;
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
+        }
+
+        [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost" })]
+        static void Postfix(SGCaptainsQuartersStatusScreen __instance) {
             try {
                 if (Fields.Deployment) {
                     ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0 - Fields.DeploymentSalary) });
@@ -173,13 +262,30 @@ namespace MercDeployments {
                     int newTotal = int.Parse(SectionOneExpensesField.text.Replace("¢", "").Replace(",", ""));
                     ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal - Fields.DeploymentSalary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 }
+                Fields.InvertCBills = false;
+
+                TextMeshProUGUI EndOfQuarterFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "EndOfQuarterFunds").GetValue(__instance);
+                TextMeshProUGUI QuarterOperatingExpenses = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "QuarterOperatingExpenses").GetValue(__instance);
+                TextMeshProUGUI CurrentFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "CurrentFunds").GetValue(__instance);
+                SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "simState").GetValue(__instance);
+                ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { EndOfQuarterFunds, SimGameState.GetCBillString(simState.Funds + simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
+                ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { QuarterOperatingExpenses, SimGameState.GetCBillString(simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
+                ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { CurrentFunds, SimGameState.GetCBillString(simState.Funds) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
             }
             catch (Exception e) {
                 Logger.LogError(e);
             }
         }
     }
-
+    [HarmonyPatch(typeof(SimGameState), "GetCBillString")]
+    public static class SimGameState_GetCBillString_Patch {
+        static void Postfix(ref string __result, int value) {
+            if (Fields.InvertCBills) {
+                __result = string.Format("{0}{1:n0}", '¢', 0 - value);
+            }
+        }
+    }
+    
     [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
     public static class SimGameState_OnDayPassed_Patch {
         static void Postfix(SimGameState __instance) {
@@ -204,7 +310,7 @@ namespace MercDeployments {
                     interruptQueue.QueueGenericPopup("New Mission", "Our Employer has a new mission for us.");
                 }
             }
-            
+
         }
 
 

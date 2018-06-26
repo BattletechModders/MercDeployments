@@ -8,6 +8,8 @@ namespace MercDeployments {
         public float MissionChancePerDay = 0.1f;
         public float DeploymentSalaryMultiplier = 5f;
         public int MaxMonth = 3;
+        public int DeploymentBreakRepCost = -30;
+        public int DeploymentBreakMRBRepCost = -50;
     }
     
     public static class Fields {
@@ -26,6 +28,7 @@ namespace MercDeployments {
         public static Dictionary<string, Contract> DeploymentContracts = new Dictionary<string, Contract>();
 
         public static Dictionary<string, int> AlreadyRaised = new Dictionary<string, int>();
+        public static bool InvertCBills = false;
     }
 
     public struct PotentialContract {
