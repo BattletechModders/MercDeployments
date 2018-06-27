@@ -107,6 +107,9 @@ namespace MercDeployments {
         }
 
         public static Contract GetNewContract(SimGameState Sim, int Difficulty, Faction emp, Faction targ) {
+            if(Difficulty <= 1) {
+                Difficulty = 2;
+            }
             ContractDifficulty minDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });
             ContractDifficulty maxDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });
             StarSystem system;

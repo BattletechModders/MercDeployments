@@ -126,7 +126,7 @@ namespace MercDeployments {
             Fields.DeploymentTarget = contract.Override.targetTeam.faction;
             Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
             Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
-            Fields.DeploymentSalary = Mathf.RoundToInt(contract.InitialContractValue * contract.PercentageContractValue);
+            Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
             Fields.DeploymentSalvage = contract.Override.salvagePotential;
             Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
             contract.SetInitialReward(0);
@@ -188,6 +188,7 @@ namespace MercDeployments {
 
     [HarmonyPatch(typeof(SGFinancialForecastWidget), "RefreshData")]
     public static class SGFinancialForecastWidget_RefreshData_Patch {
+
         static void Postfix(SGFinancialForecastWidget __instance) {
             try {
                 SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGFinancialForecastWidget), "simState").GetValue(__instance);             
@@ -209,14 +210,17 @@ namespace MercDeployments {
                     UIColorRefTracker SpendingValueColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "SpendingValueColor").GetValue(__instance);
                     UIColorRefTracker FinancialTextColor = (UIColorRefTracker)AccessTools.Field(typeof(SGFinancialForecastWidget), "FinancialTextColor").GetValue(__instance);
                     Image BankrupcyIncomingOverlay = (Image)AccessTools.Field(typeof(SGFinancialForecastWidget), "BankrupcyIncomingOverlay").GetValue(__instance);
-                    TextMeshProUGUI CurrSpendingValueText = (TextMeshProUGUI)AccessTools.Field(typeof(SGFinancialForecastWidget), "CurrSpendingValueText").GetValue(__instance);
+                    
                     UnderlineColor.SetUIColor(UIColor.Green);
                     ReportBGColor.SetUIColor(UIColor.Green);
                     SpendingValueColor.SetUIColor(UIColor.Green);
                     FinancialTextColor.SetUIColor(UIColor.Green);
-                    CurrSpendingValueText.text = string.Format("{0} / mo (income)", SimGameState.GetCBillString(0-expenditures));
+                    
                     BankrupcyIncomingOverlay.gameObject.SetActive(false);
+                    
                 }
+                TextMeshProUGUI CurrSpendingValueText = (TextMeshProUGUI)AccessTools.Field(typeof(SGFinancialForecastWidget), "CurrSpendingValueText").GetValue(__instance);
+                CurrSpendingValueText.text = string.Format("{0} / mo", SimGameState.GetCBillString(0 - expenditures));
             }
             catch (Exception e) {
                 Logger.LogError(e);
@@ -227,6 +231,7 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "GetExpenditures")]
     public static class SimGameState_GetExpenditures_Patch {
 
+        
         static void Postfix(ref SimGameState __instance, ref int __result) {
             try {
                 if (Fields.Deployment) {
@@ -263,13 +268,12 @@ namespace MercDeployments {
                     ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { SectionOneExpensesField, SimGameState.GetCBillString(newTotal - Fields.DeploymentSalary) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 }
                 Fields.InvertCBills = false;
-
+                SGFinancialForecastWidget FinanceWidget = (SGFinancialForecastWidget)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "FinanceWidget").GetValue(__instance);
+                FinanceWidget.RefreshData();
                 TextMeshProUGUI EndOfQuarterFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "EndOfQuarterFunds").GetValue(__instance);
-                TextMeshProUGUI QuarterOperatingExpenses = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "QuarterOperatingExpenses").GetValue(__instance);
                 TextMeshProUGUI CurrentFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "CurrentFunds").GetValue(__instance);
                 SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "simState").GetValue(__instance);
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { EndOfQuarterFunds, SimGameState.GetCBillString(simState.Funds + simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
-                ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { QuarterOperatingExpenses, SimGameState.GetCBillString(simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { CurrentFunds, SimGameState.GetCBillString(simState.Funds) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
             }
             catch (Exception e) {
@@ -277,6 +281,7 @@ namespace MercDeployments {
             }
         }
     }
+
     [HarmonyPatch(typeof(SimGameState), "GetCBillString")]
     public static class SimGameState_GetCBillString_Patch {
         static void Postfix(ref string __result, int value) {
@@ -300,21 +305,40 @@ namespace MercDeployments {
                 System.Random rand = new System.Random();
                 if (rand.NextDouble() < settings.MissionChancePerDay) {
                     __instance.PauseTimer();
+                    __instance.StopPlayMode();
+                    
                     SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
                     Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
                     newcon.SetInitialReward(0);
                     newcon.Override.salvagePotential = Fields.DeploymentSalvage;
                     newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
                     newcon.Override.disableNegotations = true;
+                    SimGameEventResult simGameEventResult = new SimGameEventResult();
+                    SimGameResultAction simGameResultAction = new SimGameResultAction();
+                    int num2 = 11;
+                    simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
+                    simGameResultAction.value = newcon.mapName;
+                    simGameResultAction.additionalValues = new string[num2];
+                    simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
+                    simGameResultAction.additionalValues[1] = newcon.mapPath;
+                    simGameResultAction.additionalValues[2] = newcon.encounterObjectGuid;
+                    simGameResultAction.additionalValues[3] = newcon.Override.ID;
+                    simGameResultAction.additionalValues[4] = (!newcon.Override.useTravelCostPenalty).ToString();
+                    simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
+                    simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
+                    simGameResultAction.additionalValues[7] = newcon.Difficulty.ToString();
+                    simGameResultAction.additionalValues[8] = "true";
+                    simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
+                    simGameResultAction.additionalValues[10] = newcon.Override.travelSeed.ToString();
+                    simGameEventResult.Actions = new SimGameResultAction[1];
+                    simGameEventResult.Actions[0] = simGameResultAction;
+                    newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
+                    AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
                     Fields.DeploymentContracts.Add(newcon.Name, newcon);
-                    interruptQueue.QueueGenericPopup("New Mission", "Our Employer has a new mission for us.");
+                    interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius), 
+                        string.Empty, new Action(__instance.CompleteBreadcrumb), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
                 }
             }
-
         }
-
-
-
     }
-
 }
