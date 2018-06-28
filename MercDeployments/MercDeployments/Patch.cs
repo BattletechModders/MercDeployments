@@ -31,7 +31,7 @@ namespace MercDeployments {
 
         static void Postfix(SGContractsListItem __instance, Contract contract) {
             try {
-                if (contract.Override.travelOnly) {
+                if (contract.Override.travelOnly && !contract.IsPriorityContract) {
                     TextMeshProUGUI contractName = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "contractName");
                     TextMeshProUGUI contractMaxPay = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "contractMaxPay");
                     TextMeshProUGUI contractMaxSalvage = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "contractMaxSalvage");
@@ -147,9 +147,21 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "OnBreadcrumbArrival")]
     public static class SimGameState_OnBreadcrumbArrival_Patch {
         static void Postfix(SimGameState __instance) {
-            Fields.Deployment = true;
-            Fields.DeploymentRemainingDays = __instance.Constants.Finances.QuarterLength * Fields.DeploymentLenght;
-        }
+            try {
+                if (!__instance.ActiveTravelContract.IsPriorityContract) {
+                    Fields.Deployment = true;
+                    Fields.DeploymentRemainingDays = __instance.Constants.Finances.QuarterLength * Fields.DeploymentLenght;
+                    WorkOrderEntry_Notification order = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Deployment End", "Deployment End", string.Empty);
+                    order.SetCost(Fields.DeploymentRemainingDays);
+                    __instance.RoomManager.AddWorkQueueEntry(order);
+                    __instance.RoomManager.SortTimeline();
+                    __instance.RoomManager.RefreshTimeline();
+                    Fields.DeploymentContracts = new Dictionary<string, Contract>();
+                    Fields.DeploymentContracts.Add(__instance.ActiveTravelContract.Name, __instance.ActiveTravelContract);
+                }
+            }catch(Exception e) {
+                Logger.LogError(e);            }
+            }
     }
 
     [HarmonyPatch(typeof(SGTimePlayPause), "ToggleTime")]
@@ -189,7 +201,6 @@ namespace MercDeployments {
     public static class SimGameState_PrepareBreadcrumb_Patch {
         static void Postfix(SimGameState __instance, ref Contract contract) {
             if (!Fields.SkipPreparePostfix) {
-                Fields.DeploymentContracts.Add(contract.Name, contract);
                 Fields.DeploymentDifficulty = contract.Difficulty;
                 Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
                 Fields.DeploymentTarget = contract.Override.targetTeam.faction;
