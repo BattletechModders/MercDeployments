@@ -78,7 +78,28 @@ namespace MercDeployments {
             if (Fields.Deployment) {
                 Fields.DeploymentContracts = new Dictionary<string, Contract>();
                 foreach (Contract contract in __instance.CurSystem.SystemContracts) {
+                    contract.Override.salvagePotential = Fields.DeploymentSalvage;
                     contract.Override.disableNegotations = true;
+                    SimGameEventResult simGameEventResult = new SimGameEventResult();
+                    SimGameResultAction simGameResultAction = new SimGameResultAction();
+                    int num2 = 11;
+                    simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
+                    simGameResultAction.value = contract.mapName;
+                    simGameResultAction.additionalValues = new string[num2];
+                    simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
+                    simGameResultAction.additionalValues[1] = contract.mapPath;
+                    simGameResultAction.additionalValues[2] = contract.encounterObjectGuid;
+                    simGameResultAction.additionalValues[3] = contract.Override.ID;
+                    simGameResultAction.additionalValues[4] = (!contract.Override.useTravelCostPenalty).ToString();
+                    simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
+                    simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
+                    simGameResultAction.additionalValues[7] = contract.Difficulty.ToString();
+                    simGameResultAction.additionalValues[8] = "true";
+                    simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
+                    simGameResultAction.additionalValues[10] = contract.Override.travelSeed.ToString();
+                    simGameEventResult.Actions = new SimGameResultAction[1];
+                    simGameEventResult.Actions[0] = simGameResultAction;
+                    contract.Override.OnContractSuccessResults.Add(simGameEventResult);
                     Fields.DeploymentContracts.Add(contract.Name, contract);
                 }
             }
@@ -145,7 +166,7 @@ namespace MercDeployments {
                         simState.Starmap.Screen.AllowInput(true);
                     };
                     string primaryButtonText = "Break Contract";
-                    string message = "WARNING: This action will break your current deplyoment contract. Your reputation with the employer and the MRB will be negatively affected.";
+                    string message = "WARNING: This action will break your current deployment contract. Your reputation with the employer and the MRB will be negatively affected.";
                     PauseNotification.Show("Navigation Change", message, simState.GetCrewPortrait(SimGameCrew.Crew_Sumire), string.Empty, true, delegate {
                         cleanup();
                         Fields.Deployment = false;
