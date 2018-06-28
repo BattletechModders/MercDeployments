@@ -6,8 +6,8 @@ using System;
 namespace MercDeployments {
     public class Settings {
         public float MissionChancePerDay = 0.1f;
-        public float DeploymentSalaryMultiplier = 5f;
-        public int MaxMonth = 3;
+        public float DeploymentSalaryMultiplier = 4f;
+        public int MaxMonth = 6;
         public int DeploymentBreakRepCost = -30;
         public int DeploymentBreakMRBRepCost = -50;
     }

@@ -78,6 +78,7 @@ namespace MercDeployments {
             if (Fields.Deployment) {
                 Fields.DeploymentContracts = new Dictionary<string, Contract>();
                 foreach (Contract contract in __instance.CurSystem.SystemContracts) {
+                    contract.Override.disableNegotations = true;
                     Fields.DeploymentContracts.Add(contract.Name, contract);
                 }
             }
