@@ -100,8 +100,33 @@ namespace MercDeployments {
                     simGameEventResult.Actions = new SimGameResultAction[1];
                     simGameEventResult.Actions[0] = simGameResultAction;
                     contract.Override.OnContractSuccessResults.Add(simGameEventResult);
+                    AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, contract);
                     Fields.DeploymentContracts.Add(contract.Name, contract);
                 }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(SGContractsWidget), "OnContractAccepted")]
+    public static class SGContractsWidget_OnContractAccepted_Patch {
+        static bool Prefix(SGContractsWidget __instance) {
+            try {
+                if (Fields.Deployment) {
+                    HBSSliderInput NegPaymentSlider = (HBSSliderInput)AccessTools.Field(typeof(SGContractsWidget), "NegPaymentSlider").GetValue(__instance);
+                    HBSSliderInput NegSalvageSlider = (HBSSliderInput)AccessTools.Field(typeof(SGContractsWidget), "NegSalvageSlider").GetValue(__instance);
+                    float cbill = NegPaymentSlider.Value / NegPaymentSlider.ValueMax;
+                        float salvage = NegSalvageSlider.Value / NegSalvageSlider.ValueMax;
+                        __instance.SelectedContract.SetNegotiatedValues(cbill, salvage);
+                    Action<bool> contractAccepted = (Action<bool>)AccessTools.Field(typeof(SGContractsWidget), "contractAccepted").GetValue(__instance);
+                    contractAccepted(false);
+                    return false;
+                    
+                } else {
+                    return true;
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+                return true;
             }
         }
     }
@@ -139,19 +164,43 @@ namespace MercDeployments {
         }
     }
 
+    [HarmonyPatch(typeof(SGTimePlayPause), "ReceiveButtonPress")]
+    public static class SGTimePlayPause_ReceiveButtonPress_Patch {
+        static void Prefix(SGTimePlayPause __instance, string button) {
+            if (Fields.Deployment && button == "LaunchContract") {
+                Fields.SkipPreparePostfix = true;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(SimGameState), "ForceTakeContract")]
+    public static class SimGameState_ForceTakeContract_Patch {
+        static void Prefix(SimGameState __instance, Contract c) {
+            if (Fields.Deployment) {
+                c.SetInitialReward(0);
+                c.Override.salvagePotential = Fields.DeploymentSalvage;
+                c.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+            }
+        }
+    }
+    
+
     [HarmonyPatch(typeof(SimGameState), "PrepareBreadcrumb")]
     public static class SimGameState_PrepareBreadcrumb_Patch {
         static void Postfix(SimGameState __instance, ref Contract contract) {
-            Fields.DeploymentContracts.Add(contract.Name, contract);
-            Fields.DeploymentDifficulty = contract.Difficulty;
-            Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
-            Fields.DeploymentTarget = contract.Override.targetTeam.faction;
-            Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
-            Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
-            Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
-            Fields.DeploymentSalvage = contract.Override.salvagePotential;
-            Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
-            contract.SetInitialReward(0);
+            if (!Fields.SkipPreparePostfix) {
+                Fields.DeploymentContracts.Add(contract.Name, contract);
+                Fields.DeploymentDifficulty = contract.Difficulty;
+                Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
+                Fields.DeploymentTarget = contract.Override.targetTeam.faction;
+                Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
+                Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
+                Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
+                Fields.DeploymentSalvage = contract.Override.salvagePotential;
+                Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
+                contract.SetInitialReward(0);
+            }
+            Fields.SkipPreparePostfix = false;
         }
     }
     [HarmonyPatch(typeof(SGNavigationScreen), "OnTravelCourseAccepted")]

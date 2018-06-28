@@ -29,6 +29,7 @@ namespace MercDeployments {
 
         public static Dictionary<string, int> AlreadyRaised = new Dictionary<string, int>();
         public static bool InvertCBills = false;
+        public static bool SkipPreparePostfix = false;
     }
 
     public struct PotentialContract {
