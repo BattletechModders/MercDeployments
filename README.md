@@ -5,6 +5,9 @@ BattleTech mod (using ModTek), that changes Travel contracts to Deplyoments.
 * install [BattleTechModLoader](https://github.com/Mpstark/BattleTechModLoader/releases) using the [instructions here](https://github.com/Mpstark/BattleTechModLoader)
 * install [ModTek](https://github.com/Mpstark/ModTek/releases) using the [instructions here](https://github.com/Mpstark/ModTek)
 
+## Not Compatible
+* Do not use together with Multi Missions
+
 ## Features
 - Changes Travel contracts to deployments.
 - Deplyoments start with the arrival at the Contract System.
