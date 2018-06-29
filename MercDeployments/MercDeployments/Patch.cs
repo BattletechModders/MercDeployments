@@ -59,6 +59,41 @@ namespace MercDeployments {
         }
     }
 
+    [HarmonyPatch(typeof(TaskTimelineWidget), "RemoveEntry")]
+    public static class TaskTimelineWidget_RemoveEntry_Patch {
+        static bool Prefix(WorkOrderEntry entry) {
+            try {
+                if (Fields.Deployment && entry.ID.Equals("Deployment End")) {
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+                return true;
+            }
+        }
+    }
+    
+    [HarmonyPatch(typeof(TaskTimelineWidget), "RegenerateEntries")]
+    public static class TaskTimelineWidget_RegenerateEntries_Patch {
+        static void Postfix(TaskTimelineWidget __instance) {
+            try {
+                if (Fields.Deployment) {
+                    if (Fields.TimeLineEntry == null) {
+                        Fields.TimeLineEntry = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Deployment End", "Deployment End");
+                    }
+                    Fields.TimeLineEntry.SetCost(Fields.DeploymentRemainingDays);
+                    __instance.AddEntry(Fields.TimeLineEntry, false);
+                    __instance.RefreshEntries();
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
+        }
+    }
+    
     [HarmonyPatch(typeof(GameInstanceSave))]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
@@ -166,7 +201,7 @@ namespace MercDeployments {
             }
         }
     }
-
+    
     [HarmonyPatch(typeof(SimGameState), "OnBreadcrumbArrival")]
     public static class SimGameState_OnBreadcrumbArrival_Patch {
         static void Postfix(SimGameState __instance) {
@@ -174,9 +209,9 @@ namespace MercDeployments {
                 if (!__instance.ActiveTravelContract.IsPriorityContract) {
                     Fields.Deployment = true;
                     Fields.DeploymentRemainingDays = __instance.Constants.Finances.QuarterLength * Fields.DeploymentLenght;
-                    WorkOrderEntry_Notification order = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Deployment End", "Deployment End", string.Empty);
-                    order.SetCost(Fields.DeploymentRemainingDays);
-                    __instance.RoomManager.AddWorkQueueEntry(order);
+                    Fields.TimeLineEntry = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric,"Deployment End", "Deployment End");
+                    Fields.TimeLineEntry.SetCost(Fields.DeploymentRemainingDays);
+                    __instance.RoomManager.AddWorkQueueEntry(Fields.TimeLineEntry);
                     __instance.RoomManager.SortTimeline();
                     __instance.RoomManager.RefreshTimeline();
                     Fields.DeploymentContracts = new Dictionary<string, Contract>();
@@ -437,6 +472,16 @@ namespace MercDeployments {
                     Fields.PaymentCall = true;
                     Fields.MissionsDoneCurrentMonth = 0;
                 }
+                Fields.DeploymentRemainingDays -= num;
+                if (Fields.TimeLineEntry != null) {
+                    Fields.TimeLineEntry.PayCost(num);
+                    TaskManagementElement taskManagementElement4 = null;
+                    TaskTimelineWidget timelineWidget = (TaskTimelineWidget)AccessTools.Field(typeof(SGRoomManager), "timelineWidget").GetValue(__instance.RoomManager);
+                    Dictionary<WorkOrderEntry, TaskManagementElement> ActiveItems = (Dictionary<WorkOrderEntry, TaskManagementElement>)AccessTools.Field(typeof(TaskTimelineWidget), "ActiveItems").GetValue(timelineWidget);
+                    if (ActiveItems.TryGetValue(Fields.TimeLineEntry, out taskManagementElement4)) {
+                        taskManagementElement4.UpdateItem(0);
+                    }
+                }
             }
             catch (Exception e) {
                 Logger.LogError(e);
@@ -447,7 +492,6 @@ namespace MercDeployments {
             try {
                 Fields.PaymentCall = false;
                 if (Fields.Deployment) {
-                    Fields.DeploymentRemainingDays--;
                     if (Fields.DeploymentRemainingDays <= 0) {
                         __instance.PauseTimer();
                         __instance.StopPlayMode();

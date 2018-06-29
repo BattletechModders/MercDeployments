@@ -33,6 +33,7 @@ namespace MercDeployments {
         public static bool InvertCBills = false;
         public static bool SkipPreparePostfix = false;
         public static bool PaymentCall = false;
+        public static WorkOrderEntry_Notification TimeLineEntry = null;
     }
 
     public struct PotentialContract {
