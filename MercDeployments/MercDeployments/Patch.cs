@@ -472,7 +472,9 @@ namespace MercDeployments {
                     Fields.PaymentCall = true;
                     Fields.MissionsDoneCurrentMonth = 0;
                 }
-                Fields.DeploymentRemainingDays -= num;
+                if (Fields.Deployment) {
+                    Fields.DeploymentRemainingDays -= num;
+                }
                 if (Fields.TimeLineEntry != null) {
                     Fields.TimeLineEntry.PayCost(num);
                     TaskManagementElement taskManagementElement4 = null;
@@ -493,13 +495,13 @@ namespace MercDeployments {
                 Fields.PaymentCall = false;
                 if (Fields.Deployment) {
                     if (Fields.DeploymentRemainingDays <= 0) {
-                        __instance.PauseTimer();
                         __instance.StopPlayMode();
                         Fields.Deployment = false;
                         SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
                         interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
                         Fields.DeploymentContracts = new Dictionary<string, Contract>();
                         __instance.CurSystem.SystemContracts.Clear();
+                        __instance.RoomManager.RefreshTimeline();
 
                     }
                     else {
