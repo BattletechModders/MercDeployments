@@ -364,11 +364,9 @@ namespace MercDeployments {
 
     [HarmonyPatch(typeof(SimGameState), "GetExpenditures")]
     public static class SimGameState_GetExpenditures_Patch {
-
-
         static void Postfix(ref SimGameState __instance, ref int __result) {
             try {
-                if (Fields.Deployment && (__instance.DayRemainingInQuarter <= Fields.DeploymentRemainingDays)) {
+                if (Fields.Deployment && ((__instance.DayRemainingInQuarter <= Fields.DeploymentRemainingDays) || Fields.PaymentCall)) {
                     __result -= Fields.DeploymentSalary;
                 }
             }
@@ -432,9 +430,11 @@ namespace MercDeployments {
 
     [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
     public static class SimGameState_OnDayPassed_Patch {
-        static void Prefix(SimGameState __instance) {
-            try {
-                if (__instance.DayRemainingInQuarter <= 0) {
+        static void Prefix(SimGameState __instance, int timeLapse) {
+            try {          
+                int num = (timeLapse <= 0) ? 1 : timeLapse;
+                if ((__instance.DayRemainingInQuarter - num <= 0)) {
+                    Fields.PaymentCall = true;
                     Fields.MissionsDoneCurrentMonth = 0;
                 }
             }
@@ -445,6 +445,7 @@ namespace MercDeployments {
 
         static void Postfix(SimGameState __instance) {
             try {
+                Fields.PaymentCall = false;
                 if (Fields.Deployment) {
                     Fields.DeploymentRemainingDays--;
                     if (Fields.DeploymentRemainingDays <= 0) {
