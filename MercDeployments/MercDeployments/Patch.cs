@@ -316,7 +316,7 @@ namespace MercDeployments {
         
         static void Postfix(ref SimGameState __instance, ref int __result) {
             try {
-                if (Fields.Deployment) {
+                if (Fields.Deployment && (__instance.DayRemainingInQuarter <= Fields.DeploymentRemainingDays)) {
                     __result -= Fields.DeploymentSalary;
                 }
             }
@@ -343,7 +343,8 @@ namespace MercDeployments {
         [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost" })]
         static void Postfix(SGCaptainsQuartersStatusScreen __instance) {
             try {
-                if (Fields.Deployment) {
+                SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "simState").GetValue(__instance);
+                if (Fields.Deployment && (simState.DayRemainingInQuarter <= Fields.DeploymentRemainingDays)) {
                     ReflectionHelper.InvokePrivateMethode(__instance, "AddListLineItem", new object[] { ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesList"), "Deployment Salary", SimGameState.GetCBillString(0 - Fields.DeploymentSalary) });
                     TextMeshProUGUI SectionOneExpensesField = (TextMeshProUGUI)ReflectionHelper.GetPrivateField(__instance, "SectionOneExpensesField");
                     int newTotal = int.Parse(SectionOneExpensesField.text.Replace("¢", "").Replace(",", ""));
@@ -353,8 +354,7 @@ namespace MercDeployments {
                 SGFinancialForecastWidget FinanceWidget = (SGFinancialForecastWidget)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "FinanceWidget").GetValue(__instance);
                 FinanceWidget.RefreshData();
                 TextMeshProUGUI EndOfQuarterFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "EndOfQuarterFunds").GetValue(__instance);
-                TextMeshProUGUI CurrentFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "CurrentFunds").GetValue(__instance);
-                SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "simState").GetValue(__instance);
+                TextMeshProUGUI CurrentFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "CurrentFunds").GetValue(__instance);     
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { EndOfQuarterFunds, SimGameState.GetCBillString(simState.Funds + simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { CurrentFunds, SimGameState.GetCBillString(simState.Funds) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
             }
