@@ -50,7 +50,12 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(StarSystem), "ResetContracts")]
     public static class StarSystem_ResetContracts_Patch {
         static void Postfix() {
-            Fields.AlreadyRaised.Clear();
+            try {
+                Fields.AlreadyRaised.Clear();
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
         }
     }
 
@@ -58,51 +63,67 @@ namespace MercDeployments {
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
         static void Postfix(GameInstanceSave __instance, GameInstance gameInstance, SaveReason saveReason) {
-            Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
-            if (Fields.Deployment) {
-                gameInstance.Simulation.CurSystem.SystemContracts.Clear();
-                gameInstance.Simulation.CurSystem.SystemContracts.AddRange(Fields.DeploymentContracts.Values);
+            try {
+                Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
+                if (Fields.Deployment) {
+                    gameInstance.Simulation.CurSystem.SystemContracts.Clear();
+                    gameInstance.Simulation.CurSystem.SystemContracts.AddRange(Fields.DeploymentContracts.Values);
+                }
             }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
+
         }
     }
 
     [HarmonyPatch(typeof(GameInstance), "Load")]
     public static class GameInstance_Load_Patch {
         static void Prefix(GameInstanceSave save) {
-            Helper.LoadState(save.InstanceGUID, save.SaveTime);
+            try {
+                Helper.LoadState(save.InstanceGUID, save.SaveTime);
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
         }
     }
     [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
     public static class SimGameState_Rehydrate_Patch {
         static void Postfix(SimGameState __instance) {
-            if (Fields.Deployment) {
-                Fields.DeploymentContracts = new Dictionary<string, Contract>();
-                foreach (Contract contract in __instance.CurSystem.SystemContracts) {
-                    contract.Override.salvagePotential = Fields.DeploymentSalvage;
-                    contract.Override.disableNegotations = true;
-                    SimGameEventResult simGameEventResult = new SimGameEventResult();
-                    SimGameResultAction simGameResultAction = new SimGameResultAction();
-                    int num2 = 11;
-                    simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
-                    simGameResultAction.value = contract.mapName;
-                    simGameResultAction.additionalValues = new string[num2];
-                    simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
-                    simGameResultAction.additionalValues[1] = contract.mapPath;
-                    simGameResultAction.additionalValues[2] = contract.encounterObjectGuid;
-                    simGameResultAction.additionalValues[3] = contract.Override.ID;
-                    simGameResultAction.additionalValues[4] = (!contract.Override.useTravelCostPenalty).ToString();
-                    simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
-                    simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
-                    simGameResultAction.additionalValues[7] = contract.Difficulty.ToString();
-                    simGameResultAction.additionalValues[8] = "true";
-                    simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
-                    simGameResultAction.additionalValues[10] = contract.Override.travelSeed.ToString();
-                    simGameEventResult.Actions = new SimGameResultAction[1];
-                    simGameEventResult.Actions[0] = simGameResultAction;
-                    contract.Override.OnContractSuccessResults.Add(simGameEventResult);
-                    AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, contract);
-                    Fields.DeploymentContracts.Add(contract.Name, contract);
+            try {
+                if (Fields.Deployment) {
+                    Fields.DeploymentContracts = new Dictionary<string, Contract>();
+                    foreach (Contract contract in __instance.CurSystem.SystemContracts) {
+                        contract.Override.salvagePotential = Fields.DeploymentSalvage;
+                        contract.Override.disableNegotations = true;
+                        SimGameEventResult simGameEventResult = new SimGameEventResult();
+                        SimGameResultAction simGameResultAction = new SimGameResultAction();
+                        int num2 = 11;
+                        simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
+                        simGameResultAction.value = contract.mapName;
+                        simGameResultAction.additionalValues = new string[num2];
+                        simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
+                        simGameResultAction.additionalValues[1] = contract.mapPath;
+                        simGameResultAction.additionalValues[2] = contract.encounterObjectGuid;
+                        simGameResultAction.additionalValues[3] = contract.Override.ID;
+                        simGameResultAction.additionalValues[4] = (!contract.Override.useTravelCostPenalty).ToString();
+                        simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
+                        simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
+                        simGameResultAction.additionalValues[7] = contract.Difficulty.ToString();
+                        simGameResultAction.additionalValues[8] = "true";
+                        simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
+                        simGameResultAction.additionalValues[10] = contract.Override.travelSeed.ToString();
+                        simGameEventResult.Actions = new SimGameResultAction[1];
+                        simGameEventResult.Actions[0] = simGameResultAction;
+                        contract.Override.OnContractSuccessResults.Add(simGameEventResult);
+                        AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, contract);
+                        Fields.DeploymentContracts.Add(contract.Name, contract);
+                    }
                 }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
@@ -171,10 +192,16 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SGTimePlayPause), "ToggleTime")]
     public static class SGTimePlayPause_ToggleTime_Patch {
         static bool Prefix(SGTimePlayPause __instance) {
-            if (Fields.Deployment && Fields.DeploymentContracts.Count > 0) {
-                return false;
+            try {
+                if (Fields.Deployment && Fields.DeploymentContracts.Count > 0) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
             }
-            else {
+            catch (Exception e) {
+                Logger.LogError(e);
                 return true;
             }
         }
@@ -183,8 +210,13 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SGTimePlayPause), "ReceiveButtonPress")]
     public static class SGTimePlayPause_ReceiveButtonPress_Patch {
         static void Prefix(SGTimePlayPause __instance, string button) {
-            if (Fields.Deployment && button == "LaunchContract") {
-                Fields.SkipPreparePostfix = true;
+            try {
+                if (Fields.Deployment && button == "LaunchContract") {
+                    Fields.SkipPreparePostfix = true;
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
@@ -192,10 +224,15 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "ForceTakeContract")]
     public static class SimGameState_ForceTakeContract_Patch {
         static void Prefix(SimGameState __instance, Contract c) {
-            if (Fields.Deployment) {
-                c.SetInitialReward(0);
-                c.Override.salvagePotential = Fields.DeploymentSalvage;
-                c.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+            try {
+                if (Fields.Deployment) {
+                    c.SetInitialReward(0);
+                    c.Override.salvagePotential = Fields.DeploymentSalvage;
+                    c.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
@@ -204,18 +241,23 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "PrepareBreadcrumb")]
     public static class SimGameState_PrepareBreadcrumb_Patch {
         static void Postfix(SimGameState __instance, ref Contract contract) {
-            if (!Fields.SkipPreparePostfix) {
-                Fields.DeploymentDifficulty = contract.Difficulty;
-                Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
-                Fields.DeploymentTarget = contract.Override.targetTeam.faction;
-                Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
-                Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
-                Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
-                Fields.DeploymentSalvage = contract.Override.salvagePotential;
-                Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
-                contract.SetInitialReward(0);
+            try {
+                if (!Fields.SkipPreparePostfix) {
+                    Fields.DeploymentDifficulty = contract.Difficulty;
+                    Fields.DeploymentEmployer = contract.Override.employerTeam.faction;
+                    Fields.DeploymentTarget = contract.Override.targetTeam.faction;
+                    Fields.DeploymentNegotiatedPayment = contract.PercentageContractValue;
+                    Fields.DeploymentNegotiatedSalvage = contract.PercentageContractSalvage;
+                    Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
+                    Fields.DeploymentSalvage = contract.Override.salvagePotential;
+                    Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
+                    contract.SetInitialReward(0);
+                }
+                Fields.SkipPreparePostfix = false;
             }
-            Fields.SkipPreparePostfix = false;
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
         }
     }
     [HarmonyPatch(typeof(SGNavigationScreen), "OnTravelCourseAccepted")]
@@ -261,12 +303,18 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SGRoomController_CmdCenter), "GetAllContracts")]
     public static class SGRoomController_CmdCenter_GetAllContracts_Patch {
         static bool Prefix(SGRoomController_CmdCenter __instance, ref List<Contract> __result) {
-            if (Fields.Deployment) {
-                List<Contract> list = Fields.DeploymentContracts.Values.ToList();
-                __result = list;
-                return false;
+            try {
+                if (Fields.Deployment) {
+                    List<Contract> list = Fields.DeploymentContracts.Values.ToList();
+                    __result = list;
+                    return false;
+                }
+                else {
+                    return true;
+                }
             }
-            else {
+            catch (Exception e) {
+                Logger.LogError(e);
                 return true;
             }
         }
@@ -371,8 +419,13 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "GetCBillString")]
     public static class SimGameState_GetCBillString_Patch {
         static void Postfix(ref string __result, int value) {
-            if (Fields.InvertCBills) {
-                __result = string.Format("{0}{1:n0}", '¢', 0 - value);
+            try {
+                if (Fields.InvertCBills) {
+                    __result = string.Format("{0}{1:n0}", '¢', 0 - value);
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
@@ -380,62 +433,72 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
     public static class SimGameState_OnDayPassed_Patch {
         static void Prefix(SimGameState __instance) {
-            if (__instance.DayRemainingInQuarter <= 0) {
-                Fields.MissionsDoneCurrentMonth = 0;
+            try {
+                if (__instance.DayRemainingInQuarter <= 0) {
+                    Fields.MissionsDoneCurrentMonth = 0;
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
 
         static void Postfix(SimGameState __instance) {
-            if (Fields.Deployment) {
-                Fields.DeploymentRemainingDays--;
-                if (Fields.DeploymentRemainingDays <= 0) {
-                    __instance.PauseTimer();
-                    __instance.StopPlayMode();
-                    Fields.Deployment = false;
-                    SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
-                    interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
-                    Fields.DeploymentContracts = new Dictionary<string, Contract>();
-                    __instance.CurSystem.SystemContracts.Clear();
+            try {
+                if (Fields.Deployment) {
+                    Fields.DeploymentRemainingDays--;
+                    if (Fields.DeploymentRemainingDays <= 0) {
+                        __instance.PauseTimer();
+                        __instance.StopPlayMode();
+                        Fields.Deployment = false;
+                        SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
+                        interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
+                        Fields.DeploymentContracts = new Dictionary<string, Contract>();
+                        __instance.CurSystem.SystemContracts.Clear();
 
-                }
-                Settings settings = Helper.LoadSettings();
-                System.Random rand = new System.Random();
-                int ChanceDivider = Mathf.Max(1, 2 ^ ((Fields.MissionsDoneCurrentMonth + 1) - Mathf.RoundToInt((__instance.Constants.Finances.QuarterLength * settings.MissionChancePerDay))));
-                if (rand.NextDouble() < settings.MissionChancePerDay / ChanceDivider) {
-                    __instance.PauseTimer();
-                    __instance.StopPlayMode();
+                    }
+                    Settings settings = Helper.LoadSettings();
+                    System.Random rand = new System.Random();
+                    int ChanceDivider = Mathf.Max(1, 2 ^ ((Fields.MissionsDoneCurrentMonth + 1) - Mathf.RoundToInt((__instance.Constants.Finances.QuarterLength * settings.MissionChancePerDay))));
+                    if (rand.NextDouble() < settings.MissionChancePerDay / ChanceDivider) {
+                        __instance.PauseTimer();
+                        __instance.StopPlayMode();
 
-                    SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
-                    Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
-                    newcon.SetInitialReward(0);
-                    newcon.Override.salvagePotential = Fields.DeploymentSalvage;
-                    newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
-                    newcon.Override.disableNegotations = true;
-                    SimGameEventResult simGameEventResult = new SimGameEventResult();
-                    SimGameResultAction simGameResultAction = new SimGameResultAction();
-                    int num2 = 11;
-                    simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
-                    simGameResultAction.value = newcon.mapName;
-                    simGameResultAction.additionalValues = new string[num2];
-                    simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
-                    simGameResultAction.additionalValues[1] = newcon.mapPath;
-                    simGameResultAction.additionalValues[2] = newcon.encounterObjectGuid;
-                    simGameResultAction.additionalValues[3] = newcon.Override.ID;
-                    simGameResultAction.additionalValues[4] = (!newcon.Override.useTravelCostPenalty).ToString();
-                    simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
-                    simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
-                    simGameResultAction.additionalValues[7] = newcon.Difficulty.ToString();
-                    simGameResultAction.additionalValues[8] = "true";
-                    simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
-                    simGameResultAction.additionalValues[10] = newcon.Override.travelSeed.ToString();
-                    simGameEventResult.Actions = new SimGameResultAction[1];
-                    simGameEventResult.Actions[0] = simGameResultAction;
-                    newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
-                    AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
-                    Fields.DeploymentContracts.Add(newcon.Name, newcon);
-                    interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius),
-                        string.Empty, new Action(__instance.CompleteBreadcrumb), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
+                        SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
+                        Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
+                        newcon.SetInitialReward(0);
+                        newcon.Override.salvagePotential = Fields.DeploymentSalvage;
+                        newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+                        newcon.Override.disableNegotations = true;
+                        SimGameEventResult simGameEventResult = new SimGameEventResult();
+                        SimGameResultAction simGameResultAction = new SimGameResultAction();
+                        int num2 = 11;
+                        simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
+                        simGameResultAction.value = newcon.mapName;
+                        simGameResultAction.additionalValues = new string[num2];
+                        simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
+                        simGameResultAction.additionalValues[1] = newcon.mapPath;
+                        simGameResultAction.additionalValues[2] = newcon.encounterObjectGuid;
+                        simGameResultAction.additionalValues[3] = newcon.Override.ID;
+                        simGameResultAction.additionalValues[4] = (!newcon.Override.useTravelCostPenalty).ToString();
+                        simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
+                        simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
+                        simGameResultAction.additionalValues[7] = newcon.Difficulty.ToString();
+                        simGameResultAction.additionalValues[8] = "true";
+                        simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
+                        simGameResultAction.additionalValues[10] = newcon.Override.travelSeed.ToString();
+                        simGameEventResult.Actions = new SimGameResultAction[1];
+                        simGameEventResult.Actions[0] = simGameResultAction;
+                        newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
+                        AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
+                        Fields.DeploymentContracts.Add(newcon.Name, newcon);
+                        interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius),
+                            string.Empty, new Action(__instance.CompleteBreadcrumb), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
+                    }
                 }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
             }
         }
     }
