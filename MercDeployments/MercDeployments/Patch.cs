@@ -384,6 +384,9 @@ namespace MercDeployments {
                     Fields.Deployment = false;
                     SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
                     interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
+                    Fields.DeploymentContracts = new Dictionary<string, Contract>();
+                    __instance.CurSystem.SystemContracts.Clear();
+
                 }
                 Settings settings = Helper.LoadSettings();
                 System.Random rand = new System.Random();
