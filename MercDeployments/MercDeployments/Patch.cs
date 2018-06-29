@@ -431,7 +431,7 @@ namespace MercDeployments {
     [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
     public static class SimGameState_OnDayPassed_Patch {
         static void Prefix(SimGameState __instance, int timeLapse) {
-            try {          
+            try {
                 int num = (timeLapse <= 0) ? 1 : timeLapse;
                 if ((__instance.DayRemainingInQuarter - num <= 0)) {
                     Fields.PaymentCall = true;
@@ -458,43 +458,45 @@ namespace MercDeployments {
                         __instance.CurSystem.SystemContracts.Clear();
 
                     }
-                    Settings settings = Helper.LoadSettings();
-                    System.Random rand = new System.Random();
-                    int ChanceDivider = Mathf.Max(1, 2 ^ ((Fields.MissionsDoneCurrentMonth + 1) - Mathf.RoundToInt((__instance.Constants.Finances.QuarterLength * settings.MissionChancePerDay))));
-                    if (rand.NextDouble() < settings.MissionChancePerDay / ChanceDivider) {
-                        __instance.PauseTimer();
-                        __instance.StopPlayMode();
+                    else {
+                        Settings settings = Helper.LoadSettings();
+                        System.Random rand = new System.Random();
+                        int ChanceDivider = Mathf.Max(1, 2 ^ ((Fields.MissionsDoneCurrentMonth + 1) - Mathf.RoundToInt((__instance.Constants.Finances.QuarterLength * settings.MissionChancePerDay))));
+                        if (rand.NextDouble() < settings.MissionChancePerDay / ChanceDivider) {
+                            __instance.PauseTimer();
+                            __instance.StopPlayMode();
 
-                        SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
-                        Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
-                        newcon.SetInitialReward(0);
-                        newcon.Override.salvagePotential = Fields.DeploymentSalvage;
-                        newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
-                        newcon.Override.disableNegotations = true;
-                        SimGameEventResult simGameEventResult = new SimGameEventResult();
-                        SimGameResultAction simGameResultAction = new SimGameResultAction();
-                        int num2 = 11;
-                        simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
-                        simGameResultAction.value = newcon.mapName;
-                        simGameResultAction.additionalValues = new string[num2];
-                        simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
-                        simGameResultAction.additionalValues[1] = newcon.mapPath;
-                        simGameResultAction.additionalValues[2] = newcon.encounterObjectGuid;
-                        simGameResultAction.additionalValues[3] = newcon.Override.ID;
-                        simGameResultAction.additionalValues[4] = (!newcon.Override.useTravelCostPenalty).ToString();
-                        simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
-                        simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
-                        simGameResultAction.additionalValues[7] = newcon.Difficulty.ToString();
-                        simGameResultAction.additionalValues[8] = "true";
-                        simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
-                        simGameResultAction.additionalValues[10] = newcon.Override.travelSeed.ToString();
-                        simGameEventResult.Actions = new SimGameResultAction[1];
-                        simGameEventResult.Actions[0] = simGameResultAction;
-                        newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
-                        AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
-                        Fields.DeploymentContracts.Add(newcon.Name, newcon);
-                        interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius),
+                            SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
+                            Contract newcon = Helper.GetNewContract(__instance, Fields.DeploymentDifficulty, Fields.DeploymentEmployer, Fields.DeploymentTarget);
+                            newcon.SetInitialReward(0);
+                            newcon.Override.salvagePotential = Fields.DeploymentSalvage;
+                            newcon.SetNegotiatedValues(Fields.DeploymentNegotiatedPayment, Fields.DeploymentNegotiatedSalvage);
+                            newcon.Override.disableNegotations = true;
+                            SimGameEventResult simGameEventResult = new SimGameEventResult();
+                            SimGameResultAction simGameResultAction = new SimGameResultAction();
+                            int num2 = 11;
+                            simGameResultAction.Type = SimGameResultAction.ActionType.System_StartNonProceduralContract;
+                            simGameResultAction.value = newcon.mapName;
+                            simGameResultAction.additionalValues = new string[num2];
+                            simGameResultAction.additionalValues[0] = __instance.CurSystem.ID;
+                            simGameResultAction.additionalValues[1] = newcon.mapPath;
+                            simGameResultAction.additionalValues[2] = newcon.encounterObjectGuid;
+                            simGameResultAction.additionalValues[3] = newcon.Override.ID;
+                            simGameResultAction.additionalValues[4] = (!newcon.Override.useTravelCostPenalty).ToString();
+                            simGameResultAction.additionalValues[5] = Fields.DeploymentEmployer.ToString();
+                            simGameResultAction.additionalValues[6] = Fields.DeploymentTarget.ToString();
+                            simGameResultAction.additionalValues[7] = newcon.Difficulty.ToString();
+                            simGameResultAction.additionalValues[8] = "true";
+                            simGameResultAction.additionalValues[9] = Fields.DeploymentEmployer.ToString();
+                            simGameResultAction.additionalValues[10] = newcon.Override.travelSeed.ToString();
+                            simGameEventResult.Actions = new SimGameResultAction[1];
+                            simGameEventResult.Actions[0] = simGameResultAction;
+                            newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
+                            AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
+                            Fields.DeploymentContracts.Add(newcon.Name, newcon);
+                            interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius),
                             string.Empty, new Action(__instance.CompleteBreadcrumb), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
+                        }
                     }
                 }
             }
