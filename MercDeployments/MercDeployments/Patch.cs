@@ -379,6 +379,8 @@ namespace MercDeployments {
             if (Fields.Deployment) {
                 Fields.DeploymentRemainingDays--;
                 if (Fields.DeploymentRemainingDays <= 0) {
+                    __instance.PauseTimer();
+                    __instance.StopPlayMode();
                     Fields.Deployment = false;
                     SimGameInterruptManager interruptQueue = (SimGameInterruptManager)AccessTools.Field(typeof(SimGameState), "interruptQueue").GetValue(__instance);
                     interruptQueue.QueueGenericPopup("Deployment Over", "Thanks for your services.");
