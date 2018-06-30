@@ -12,6 +12,15 @@ using UnityEngine;
 using UnityEngine.UI;
 
 namespace MercDeployments {
+
+    [HarmonyPatch(typeof(SimGameState), "_OnFirstPlayInit")]
+    public static class SimGameState_FirstPlayInit_Patch {
+        static void Postfix(SimGameState __instance)
+        {
+            Fields.Deployment = false;
+        }
+    }
+
     [HarmonyPatch(typeof(SGContractsListItem), "Init")]
     public static class SGContractsListItem_Init_Patch {
         static void Prefix(SGContractsListItem __instance, Contract contract) {
