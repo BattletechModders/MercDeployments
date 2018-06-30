@@ -10,6 +10,7 @@ namespace MercDeployments {
         public int MaxMonth = 6;
         public int DeploymentBreakRepCost = -30;
         public int DeploymentBreakMRBRepCost = -50;
+        public float BonusPercentage = 0.05f;
     }
     
     public static class Fields {

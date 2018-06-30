@@ -1,4 +1,5 @@
 ﻿using BattleTech;
+using BattleTech.Framework;
 using BattleTech.Save;
 using BattleTech.Save.SaveGameStructure;
 using BattleTech.UI;
@@ -13,10 +14,62 @@ using UnityEngine.UI;
 
 namespace MercDeployments {
 
+    [HarmonyPatch(typeof(AAR_ContractObjectivesWidget), "FillInObjectives")]
+    public static class AAR_ContractObjectivesWidget_FillInObjectives {
+
+        static bool Prefix(AAR_ContractObjectivesWidget __instance) {
+            try {
+                if (Fields.Deployment) {
+                    Settings settings = Helper.LoadSettings();
+                    Contract theContract = (Contract)AccessTools.Field(typeof(AAR_ContractObjectivesWidget), "theContract").GetValue(__instance);
+                    foreach (MissionObjectiveResult missionObjectiveResult in theContract.MissionObjectiveResultList) {
+                        if (missionObjectiveResult.isPrimary) {
+                            ReflectionHelper.InvokePrivateMethode(__instance, "AddObjective", new object[] { missionObjectiveResult });
+                        }
+                        else if (missionObjectiveResult.status == ObjectiveStatus.Succeeded) {
+                            int Bonus = Mathf.RoundToInt(settings.BonusPercentage * Fields.DeploymentSalary);
+                            string missionObjectiveResultString = "Bonus For Secondary Objective: " + SimGameState.GetCBillString(Bonus);
+                            MissionObjectiveResult missionObjectiveResult2 = new MissionObjectiveResult(missionObjectiveResultString, "7facf07a-626d-4a3b-a1ec-b29a35ff1ac0", false, true, ObjectiveStatus.Succeeded, false);
+                            ReflectionHelper.InvokePrivateMethode(__instance, "AddObjective", new object[] { missionObjectiveResult2 });
+                        }
+                        else {
+                            ReflectionHelper.InvokePrivateMethode(__instance, "AddObjective", new object[] { missionObjectiveResult });
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+                return true;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Contract), "CompleteContract")]
+    public static class Contract_CompleteContract {
+        static void Postfix(Contract __instance) {
+            try {
+                Settings settings = Helper.LoadSettings();
+                int bonusPayment = 0;
+                foreach (MissionObjectiveResult missionObjectiveResult in __instance.MissionObjectiveResultList) {
+                    if (!missionObjectiveResult.isPrimary && missionObjectiveResult.status == ObjectiveStatus.Succeeded) {
+                        bonusPayment += Mathf.RoundToInt(settings.BonusPercentage * Fields.DeploymentSalary);
+                    }
+                }
+                int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults + bonusPayment);
+                ReflectionHelper.InvokePrivateMethode(__instance, "set_MoneyResults", new object[] { newMoneyResults });
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(SimGameState), "_OnFirstPlayInit")]
     public static class SimGameState_FirstPlayInit_Patch {
-        static void Postfix(SimGameState __instance)
-        {
+        static void Postfix(SimGameState __instance) {
             Fields.Deployment = false;
         }
     }
@@ -83,7 +136,7 @@ namespace MercDeployments {
             }
         }
     }
-    
+
     [HarmonyPatch(typeof(TaskTimelineWidget), "RegenerateEntries")]
     public static class TaskTimelineWidget_RegenerateEntries_Patch {
         static void Postfix(TaskTimelineWidget __instance) {
@@ -102,7 +155,7 @@ namespace MercDeployments {
             }
         }
     }
-    
+
     [HarmonyPatch(typeof(GameInstanceSave))]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
@@ -210,7 +263,7 @@ namespace MercDeployments {
             }
         }
     }
-    
+
     [HarmonyPatch(typeof(SimGameState), "OnBreadcrumbArrival")]
     public static class SimGameState_OnBreadcrumbArrival_Patch {
         static void Postfix(SimGameState __instance) {
@@ -218,7 +271,7 @@ namespace MercDeployments {
                 if (!__instance.ActiveTravelContract.IsPriorityContract) {
                     Fields.Deployment = true;
                     Fields.DeploymentRemainingDays = __instance.Constants.Finances.QuarterLength * Fields.DeploymentLenght;
-                    Fields.TimeLineEntry = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric,"Deployment End", "Deployment End");
+                    Fields.TimeLineEntry = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Deployment End", "Deployment End");
                     Fields.TimeLineEntry.SetCost(Fields.DeploymentRemainingDays);
                     __instance.RoomManager.AddWorkQueueEntry(Fields.TimeLineEntry);
                     __instance.RoomManager.SortTimeline();
@@ -255,8 +308,10 @@ namespace MercDeployments {
     public static class SGTimePlayPause_ReceiveButtonPress_Patch {
         static void Prefix(SGTimePlayPause __instance, string button) {
             try {
-                if (Fields.Deployment && button == "LaunchContract") {
-                    Fields.SkipPreparePostfix = true;
+                if (button != null) {
+                    if (Fields.Deployment && button == "LaunchContract") {
+                        Fields.SkipPreparePostfix = true;
+                    }
                 }
             }
             catch (Exception e) {
