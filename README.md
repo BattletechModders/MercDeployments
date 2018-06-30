@@ -32,6 +32,7 @@ DeploymentSalaryMultiplier | float | default 4 | The multiplier a Deplyoment pay
 MaxMonth | int | default 6 | The maximum amount of months a Deployment can go on for.
 DeploymentBreakRepCost | int | default -30 | The Reputation amount you will lose if you break a deployment.
 DeploymentBreakMRBRepCost | int | default -50 | The MRB-Rating amount you will lose if you break a deployment.
+BonusPercentage | float | default 0.05 | How much percent of the monthly payment each secondary objective will pay you after a mission.
     
 ## Install
 - After installing BTML and ModTek, put  everything into \BATTLETECH\Mods\ folder.
