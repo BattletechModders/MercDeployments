@@ -78,9 +78,10 @@ namespace MercDeployments {
     public static class SGContractsListItem_Init_Patch {
         static void Prefix(SGContractsListItem __instance, Contract contract) {
             try {
-                if (contract.Override.travelOnly && !Fields.AlreadyRaised.ContainsKey(contract.Name)) {
+                if (contract.Override.travelOnly && !Fields.AlreadyRaised.ContainsKey(contract.Name) && !contract.IsPriorityContract) {
                     Settings settings = Helper.LoadSettings();
                     contract.SetInitialReward(Mathf.RoundToInt(contract.InitialContractValue * settings.DeploymentSalaryMultiplier));
+                    contract.Override.difficultyUIModifier = 2;
                     System.Random rand = new System.Random();
                     int numberOfMonth = rand.Next(1, settings.MaxMonth + 1);
                     Fields.AlreadyRaised.Add(contract.Name, numberOfMonth);
