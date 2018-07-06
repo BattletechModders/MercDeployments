@@ -114,6 +114,8 @@ namespace MercDeployments {
         public static Contract GetNewContract(SimGameState Sim, int Difficulty, Faction emp, Faction targ) {
             if(Difficulty <= 1) {
                 Difficulty = 2;
+            } else if (Difficulty > 10) {
+                Difficulty = 10;
             }
             ContractDifficulty minDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });
             ContractDifficulty maxDiffClamped = (ContractDifficulty)ReflectionHelper.InvokePrivateMethode(Sim, "GetDifficultyEnumFromValue", new object[] { Difficulty });

@@ -144,8 +144,8 @@ namespace MercDeployments {
                 if (Fields.Deployment) {
                     if (Fields.TimeLineEntry == null) {
                         Fields.TimeLineEntry = new WorkOrderEntry_Notification(WorkOrderType.NotificationGeneric, "Deployment End", "Deployment End");
+                        Fields.TimeLineEntry.SetCost(Fields.DeploymentRemainingDays);
                     }
-                    Fields.TimeLineEntry.SetCost(Fields.DeploymentRemainingDays);
                     __instance.AddEntry(Fields.TimeLineEntry, false);
                     __instance.RefreshEntries();
                 }
@@ -187,9 +187,9 @@ namespace MercDeployments {
     }
     [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
     public static class SimGameState_Rehydrate_Patch {
-        static void Postfix(SimGameState __instance) {
+        static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave) {
             try {
-                if (Fields.Deployment) {
+                if (Fields.Deployment) {              
                     Fields.DeploymentContracts = new Dictionary<string, Contract>();
                     foreach (Contract contract in __instance.CurSystem.SystemContracts) {
                         contract.Override.salvagePotential = Fields.DeploymentSalvage;
@@ -214,7 +214,9 @@ namespace MercDeployments {
                         simGameEventResult.Actions = new SimGameResultAction[1];
                         simGameEventResult.Actions[0] = simGameResultAction;
                         contract.Override.OnContractSuccessResults.Add(simGameEventResult);
-                        AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, contract);
+                        if (!gameInstanceSave.HasCombatData) {
+                            AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, contract);
+                        }
                         Fields.DeploymentContracts.Add(contract.Name, contract);
                     }
                 }
