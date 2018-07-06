@@ -13,6 +13,30 @@ using UnityEngine;
 using UnityEngine.UI;
 
 namespace MercDeployments {
+    
+[HarmonyPatch(typeof(SGContractsWidget), "OnNegotiateClicked")]
+    public static class SGContractsWidget_OnNegotiateClicked_Patch {
+
+        static bool Prefix(SGContractsWidget __instance) {
+            try {
+                SimGameState Sim = (SimGameState)AccessTools.Property(typeof(SGContractsWidget), "Sim").GetValue(__instance, null);
+                if (__instance.SelectedContract.Override.travelOnly  && !__instance.SelectedContract.IsPriorityContract && Sim.ActiveMechs.Count < 8) {
+                    string message = "Commander, a deployment is a longer term arrangement with an employer, that may require missions to be done without time between them for repairs. I strongly encourage you to only deploy on this arrangement if we are capable of fielding multiple lances with little or no time for repairs, just in case.";
+                    PauseNotification.Show("Deployment", message,
+                        Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, delegate {
+                            __instance.NegotiateContract(__instance.SelectedContract, null);
+                        }, "Do it anyways", null, "Cancel");
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            catch (Exception e) {
+                Logger.LogError(e);
+                return true;
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(AAR_ContractObjectivesWidget), "FillInObjectives")]
     public static class AAR_ContractObjectivesWidget_FillInObjectives {
