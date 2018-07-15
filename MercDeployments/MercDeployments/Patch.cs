@@ -48,6 +48,9 @@ namespace MercDeployments {
                     Contract theContract = (Contract)AccessTools.Field(typeof(AAR_ContractObjectivesWidget), "theContract").GetValue(__instance);
                     foreach (MissionObjectiveResult missionObjectiveResult in theContract.MissionObjectiveResultList) {
                         if (missionObjectiveResult.isPrimary) {
+                            foreach(SimGameEventResult result in missionObjectiveResult.simGameEventResultList) {
+                                result.Stats = null;
+                            }
                             ReflectionHelper.InvokePrivateMethode(__instance, "AddObjective", new object[] { missionObjectiveResult });
                         }
                         else if (missionObjectiveResult.status == ObjectiveStatus.Succeeded) {
@@ -75,15 +78,17 @@ namespace MercDeployments {
     public static class Contract_CompleteContract {
         static void Postfix(Contract __instance) {
             try {
-                Settings settings = Helper.LoadSettings();
-                int bonusPayment = 0;
-                foreach (MissionObjectiveResult missionObjectiveResult in __instance.MissionObjectiveResultList) {
-                    if (!missionObjectiveResult.isPrimary && missionObjectiveResult.status == ObjectiveStatus.Succeeded) {
-                        bonusPayment += Mathf.RoundToInt(settings.BonusPercentage * Fields.DeploymentSalary);
+                if (Fields.Deployment) {
+                    Settings settings = Helper.LoadSettings();
+                    int bonusPayment = 0;
+                    foreach (MissionObjectiveResult missionObjectiveResult in __instance.MissionObjectiveResultList) {
+                        if (!missionObjectiveResult.isPrimary && missionObjectiveResult.status == ObjectiveStatus.Succeeded) {
+                            bonusPayment += Mathf.RoundToInt(settings.BonusPercentage * Fields.DeploymentSalary);
+                        }
                     }
+                    int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults + bonusPayment);
+                    ReflectionHelper.InvokePrivateMethode(__instance, "set_MoneyResults", new object[] { newMoneyResults });
                 }
-                int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults + bonusPayment);
-                ReflectionHelper.InvokePrivateMethode(__instance, "set_MoneyResults", new object[] { newMoneyResults });
             }
             catch (Exception e) {
                 Logger.LogError(e);
@@ -210,6 +215,7 @@ namespace MercDeployments {
             }
         }
     }
+
     [HarmonyPatch(typeof(SimGameState), "Rehydrate")]
     public static class SimGameState_Rehydrate_Patch {
         static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave) {
@@ -251,6 +257,7 @@ namespace MercDeployments {
             }
         }
     }
+
     [HarmonyPatch(typeof(SGContractsWidget), "OnContractAccepted")]
     public static class SGContractsWidget_OnContractAccepted_Patch {
         static bool Prefix(SGContractsWidget __instance) {
@@ -281,9 +288,11 @@ namespace MercDeployments {
     public static class AAR_SalvageScreen_OnCompleted_Patch {
         static void Postfix(AAR_SalvageScreen __instance) {
             try {
-                Contract con = (Contract)ReflectionHelper.GetPrivateField(__instance, "contract");
-                Fields.DeploymentContracts.Remove(con.Name);
-                Fields.MissionsDoneCurrentMonth++;
+                if (Fields.Deployment) {
+                    Contract con = (Contract)ReflectionHelper.GetPrivateField(__instance, "contract");
+                    Fields.DeploymentContracts.Remove(con.Name);
+                    Fields.MissionsDoneCurrentMonth++;
+                }
             }
             catch (Exception e) {
                 Logger.LogError(e);
@@ -377,6 +386,7 @@ namespace MercDeployments {
                     Fields.DeploymentSalary = Mathf.RoundToInt(__instance.GetScaledCBillValue(contract.InitialContractValue, contract.InitialContractValue * contract.PercentageContractValue));
                     Fields.DeploymentSalvage = contract.Override.salvagePotential;
                     Fields.DeploymentLenght = Fields.AlreadyRaised[contract.Name];
+                    contract.Override.disableNegotations = true;
                     contract.SetInitialReward(0);
                 }
                 Fields.SkipPreparePostfix = false;
@@ -593,6 +603,7 @@ namespace MercDeployments {
                         Fields.DeploymentContracts = new Dictionary<string, Contract>();
                         __instance.CurSystem.SystemContracts.Clear();
                         __instance.RoomManager.RefreshTimeline();
+                        AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, null);
 
                     }
                     else {
