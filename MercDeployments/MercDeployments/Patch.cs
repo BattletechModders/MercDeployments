@@ -5,6 +5,7 @@ using BattleTech.Save.SaveGameStructure;
 using BattleTech.UI;
 using DG.Tweening;
 using Harmony;
+using SVGImporter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,21 +14,22 @@ using UnityEngine;
 using UnityEngine.UI;
 
 namespace MercDeployments {
-    
-[HarmonyPatch(typeof(SGContractsWidget), "OnNegotiateClicked")]
+
+    [HarmonyPatch(typeof(SGContractsWidget), "OnNegotiateClicked")]
     public static class SGContractsWidget_OnNegotiateClicked_Patch {
 
         static bool Prefix(SGContractsWidget __instance) {
             try {
                 SimGameState Sim = (SimGameState)AccessTools.Property(typeof(SGContractsWidget), "Sim").GetValue(__instance, null);
-                if (__instance.SelectedContract.Override.travelOnly  && !__instance.SelectedContract.IsPriorityContract && Sim.ActiveMechs.Count < 8) {
+                if (__instance.SelectedContract.Override.travelOnly && !__instance.SelectedContract.IsPriorityContract && Sim.ActiveMechs.Count < 8) {
                     string message = "Commander, a deployment is a longer term arrangement with an employer, that may require missions to be done without time between them for repairs. I strongly encourage you to only deploy on this arrangement if we are capable of fielding multiple lances with little or no time for repairs, just in case.";
                     PauseNotification.Show("Deployment", message,
                         Sim.GetCrewPortrait(SimGameCrew.Crew_Darius), string.Empty, true, delegate {
                             __instance.NegotiateContract(__instance.SelectedContract, null);
                         }, "Do it anyways", null, "Cancel");
                     return false;
-                } else {
+                }
+                else {
                     return true;
                 }
             }
@@ -48,7 +50,7 @@ namespace MercDeployments {
                     Contract theContract = (Contract)AccessTools.Field(typeof(AAR_ContractObjectivesWidget), "theContract").GetValue(__instance);
                     foreach (MissionObjectiveResult missionObjectiveResult in theContract.MissionObjectiveResultList) {
                         if (missionObjectiveResult.isPrimary) {
-                            foreach(SimGameEventResult result in missionObjectiveResult.simGameEventResultList) {
+                            foreach (SimGameEventResult result in missionObjectiveResult.simGameEventResultList) {
                                 result.Stats = null;
                             }
                             ReflectionHelper.InvokePrivateMethode(__instance, "AddObjective", new object[] { missionObjectiveResult });
@@ -186,7 +188,7 @@ namespace MercDeployments {
         }
     }
 
-    [HarmonyPatch(typeof(GameInstanceSave))]
+    [HarmonyPatch(typeof(GameInstanceSave), MethodType.Constructor)]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch {
         static void Postfix(GameInstanceSave __instance, GameInstance gameInstance, SaveReason saveReason) {
@@ -220,7 +222,7 @@ namespace MercDeployments {
     public static class SimGameState_Rehydrate_Patch {
         static void Postfix(SimGameState __instance, GameInstanceSave gameInstanceSave) {
             try {
-                if (Fields.Deployment) {              
+                if (Fields.Deployment) {
                     Fields.DeploymentContracts = new Dictionary<string, Contract>();
                     foreach (Contract contract in __instance.CurSystem.SystemContracts) {
                         contract.Override.salvagePotential = Fields.DeploymentSalvage;
@@ -259,6 +261,7 @@ namespace MercDeployments {
     }
 
     [HarmonyPatch(typeof(SGContractsWidget), "OnContractAccepted")]
+    [HarmonyPatch(new Type[] { typeof(bool) })]
     public static class SGContractsWidget_OnContractAccepted_Patch {
         static bool Prefix(SGContractsWidget __instance) {
             try {
@@ -271,7 +274,6 @@ namespace MercDeployments {
                     Action<bool> contractAccepted = (Action<bool>)AccessTools.Field(typeof(SGContractsWidget), "contractAccepted").GetValue(__instance);
                     contractAccepted(false);
                     return false;
-
                 }
                 else {
                     return true;
@@ -404,7 +406,7 @@ namespace MercDeployments {
                     UIManager uiManager = (UIManager)AccessTools.Field(typeof(SGNavigationScreen), "uiManager").GetValue(__instance);
                     SimGameState simState = (SimGameState)AccessTools.Field(typeof(SGNavigationScreen), "simState").GetValue(__instance);
                     Action cleanup = delegate () {
-                        uiManager.ResetFader(UIManagerFader_Controller.FadeUIContainer.PopupRoot);
+                        uiManager.ResetFader(UIManagerRootType.PopupRoot);
                         simState.Starmap.Screen.AllowInput(true);
                     };
                     string primaryButtonText = "Break Contract";
@@ -422,7 +424,7 @@ namespace MercDeployments {
                         simState.SetSimRoomState(DropshipLocation.SHIP);
                     }, primaryButtonText, cleanup, "Cancel");
                     simState.Starmap.Screen.AllowInput(false);
-                    uiManager.SetFaderColor(uiManager.UILookAndColorConstants.PopupBackfill, UIManagerFader.FadePosition.FadeInBack, UIManagerFader_Controller.FadeUIContainer.PopupRoot, true);
+                    uiManager.SetFaderColor(uiManager.UILookAndColorConstants.PopupBackfill, UIManagerFader.FadePosition.FadeInBack, UIManagerRootType.PopupRoot, true);
                     return false;
                 }
                 else {
@@ -541,6 +543,23 @@ namespace MercDeployments {
                 FinanceWidget.RefreshData();
                 TextMeshProUGUI EndOfQuarterFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "EndOfQuarterFunds").GetValue(__instance);
                 TextMeshProUGUI CurrentFunds = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "CurrentFunds").GetValue(__instance);
+
+                if (simState.GetExpenditures(false) <= 0) {
+                    TextMeshProUGUI QuarterOperatingExpenses = (TextMeshProUGUI)AccessTools.Field(typeof(SGCaptainsQuartersStatusScreen), "QuarterOperatingExpenses").GetValue(__instance);
+                    UIColorRefTracker BR = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("BR"));
+                    BR.colorRef.UIColor = UIColor.Green;
+                    UIColorRefTracker BL = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("BL"));
+                    BL.colorRef.UIColor = UIColor.Green;
+                    UIColorRefTracker TL = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("TL"));
+                    TL.colorRef.UIColor = UIColor.Green;
+                    UIColorRefTracker TR = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("TR"));
+                    TR.colorRef.UIColor = UIColor.Green;
+                    UIColorRefTracker txt_opExpensesLabel = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("txt_opExpensesLabel"));
+                    txt_opExpensesLabel.colorRef.UIColor = UIColor.Green;
+                    UIColorRefTracker txt_opExpensesAmmount = QuarterOperatingExpenses.transform.parent.GetComponentsInChildren<UIColorRefTracker>().FirstOrDefault(x => x.name.Equals("txt_opExpensesAmmount"));
+                    txt_opExpensesAmmount.colorRef.UIColor = UIColor.Green;
+                }
+
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { EndOfQuarterFunds, SimGameState.GetCBillString(simState.Funds + simState.GetExpenditures(false)) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
                 ReflectionHelper.InvokePrivateMethode(__instance, "SetField", new object[] { CurrentFunds, SimGameState.GetCBillString(simState.Funds) }, new Type[] { typeof(TextMeshProUGUI), typeof(string) });
             }
@@ -642,8 +661,11 @@ namespace MercDeployments {
                             newcon.Override.OnContractSuccessResults.Add(simGameEventResult);
                             AccessTools.Field(typeof(SimGameState), "activeBreadcrumb").SetValue(__instance, newcon);
                             Fields.DeploymentContracts.Add(newcon.Name, newcon);
+                            Action primaryAction = delegate () {
+                                __instance.QueueCompleteBreadcrumbProcess(true);
+                            };
                             interruptQueue.QueueTravelPauseNotification("New Mission", "Our Employer has a new mission for us.", __instance.GetCrewPortrait(SimGameCrew.Crew_Darius),
-                            string.Empty, new Action(__instance.CompleteBreadcrumb), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
+                            string.Empty, new Action(primaryAction), "Proceed", new Action(__instance.OnBreadcrumbWait), "Not Yet");
                         }
                     }
                 }
