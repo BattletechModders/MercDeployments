@@ -588,12 +588,14 @@ namespace MercDeployments {
         static void Prefix(SimGameState __instance, int timeLapse) {
             try {
                 int num = (timeLapse <= 0) ? 1 : timeLapse;
-                if ((__instance.DayRemainingInQuarter - num <= 0)) {
+                if (Fields.Deployment)
+                {
+                    Fields.DeploymentRemainingDays -= num;
+                }
+                if (Fields.DeploymentRemainingDays % __instance.Constants.Finances.QuarterLength == 0)
+                {
                     Fields.PaymentCall = true;
                     Fields.MissionsDoneCurrentMonth = 0;
-                }
-                if (Fields.Deployment) {
-                    Fields.DeploymentRemainingDays -= num;
                 }
                 if (Fields.TimeLineEntry != null) {
                     Fields.TimeLineEntry.PayCost(num);
